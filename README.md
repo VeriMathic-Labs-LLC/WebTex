@@ -13,7 +13,7 @@
 
 **WebTeX** is a lightweight Chrome/Edge/Brave extension that auto‑renders inline  
 and block LaTeX on pages that don’t support it natively—Reddit, GitHub issues,
-Notion, Google Docs comments, Notebook LM, and more.
+Notion, Google Docs comments, NotebookLM, and more.
 
 </div>
 
