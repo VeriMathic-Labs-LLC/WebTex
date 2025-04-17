@@ -4,13 +4,16 @@
 
 # WebTeX – Render LaTeX anywhere
 
-[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/your-id.svg?logo=googlechrome)](https://chrome.google.com/webstore/detail/your‑id)
-[![License](https://img.shields.io/github/license/USERNAME/WebTeX-extension)](LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/USERNAME/WebTeX-extension/build.yml?label=build)](https://github.com/USERNAME/WebTeX-extension/actions)
+[![GitHub release](https://img.shields.io/github/v/release/Wais-A/WebTex?logo=github)](https://github.com/Wais-A/WebTex/releases)
+<!-- Uncomment after publishing →
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/__________.svg?logo=googlechrome)](https://chrome.google.com/webstore/detail/__________)
+-->
+[![License](https://img.shields.io/github/license/Wais-A/WebTex)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/Wais-A/WebTex/build.yml?label=build)](https://github.com/Wais-A/WebTex/actions)
 
 **WebTeX** is a lightweight Chrome/Edge/Brave extension that auto‑renders inline  
-and block LaTeX on any website that doesn’t support it natively—Reddit, GitHub  
-issues, Notion, Google Docs comments, …
+and block LaTeX on pages that don’t support it natively—Reddit, GitHub issues,
+Notion, Google Docs comments, Notebook LM, and more.
 
 </div>
 
@@ -20,35 +23,34 @@ issues, Notion, Google Docs comments, …
 
 |            | |
 |------------|--------------------------------------------------------------|
-| 🖋️ **KaTeX engine** | Fast, self‑contained (no CDN requests, works offline). |
-| 🌓 **Dark‑mode aware** | Follows the page theme; math stays legible on dark backgrounds. |
+| 🖋️ **KaTeX engine** | Fast & offline‑ready—bundled fonts, no CDN hits. |
+| 🌓 **Dark‑mode aware** | Respects system/theme changes automatically. |
 | 🎚 **Per‑site toggle** | Enable rendering only where you need it. |
-| 🔄 **Live DOM observer** | Renders math added by AJAX / infinite‑scroll without reloads. |
-| ♿️ **No CSP breaks** | All scripts are external; extension passes strict MV3 CSP. |
+| 🔄 **Live DOM observer** | Renders math added by AJAX / infinite‑scroll. |
+| 🔒 **Strict MV3 CSP** | No inline scripts; passes Chrome store review. |
 
 <p align="center">
   <img src="docs/screenshot-light.png" width="380">
   <img src="docs/screenshot-dark.png"  width="380">
 </p>
 
-*(Add your own screenshots in **docs/** or replace these placeholders.)*
+*(Replace the screenshots above with your own images in **docs/**.)*
 
 ---
 
 ## 🚀 Install
 
-* **Chrome / Edge / Brave** – grab it from the  
-  <a href="https://chrome.google.com/webstore/detail/your‑id">
-  <img alt="Chrome Web Store" height="20" src="https://img.shields.io/badge/Chrome%20Web Store-Install-blue?logo=googlechrome&logoColor=white"></a>
-
-* **Firefox** – coming soon (MV3 parity landed in Firefox 128).
+| Browser | Link |
+|---------|------|
+| **Chrome / Edge / Brave** | *(coming soon – publish to store then paste link)* |
+| **Developer build** | Load the unpacked `build/` folder (see below). |
 
 ---
 
 ## 🛠 Development
 
 ```bash
-git clone https://github.com/USERNAME/WebTeX-extension.git
-cd WebTeX-extension
+git clone https://github.com/Wais-A/WebTex.git
+cd WebTex
 npm install
-npm run build            # → build/ with manifest & bundles
+npm run build        # outputs production bundle to build/
