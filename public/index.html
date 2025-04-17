@@ -1,27 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>New Tab</title>
-  <link rel="stylesheet" href="app.css" />
-</head>
+<!doctype html>
+<meta charset="utf-8" />
+<title>WebTeX</title>
+<link rel="stylesheet" href="popup.css" />
+
 <body>
-  <div class="container">
-    <p id="day" class="day"></p>
-    <div id="clock" class="clock"></div>
+  <header>
+    <img src="icons/icon_48.png" alt="WebTeX icon" />
+    <h2>WebTeX</h2>
+  </header>
 
-    <hr class="divider" />
+  <section class="row">
+    <span id="globalStatus" class="chip">‑‑</span>
+    <label class="switch">
+      <input type="checkbox" id="globalToggle" />
+      <span class="slider"></span>
+    </label>
+    <span class="label">Extension&nbsp;enabled</span>
+  </section>
 
-    <p class="title">Chrome Extension is Ready!</p>
-    <p class="subtitle">Start by updating <code>index.html</code></p>
-  </div>
-  <script src="app.js"></script>
+  <section class="row">
+    <span id="domainName" class="domain">example.com</span>
+    <span id="siteStatus" class="chip">‑‑</span>
+    <label class="switch">
+      <input type="checkbox" id="siteToggle" />
+      <span class="slider"></span>
+    </label>
+    <span class="label">Render on this site</span>
+  </section>
 
-  <!--
-    This HTML file is a template for overriding pages like New Tab, Bookmarks, or History page.
+  <nav>
+    <a href="https://github.com/Khan/KaTeX" target="_blank">KaTeX&nbsp;docs</a>
+    <a href="https://github.com/your‑repo"   target="_blank">GitHub&nbsp;repo</a>
+  </nav>
 
-    To begin the development, run `npm run watch`.
-    To create a production bundle, use `npm run build`.
-  -->
+  <script type="module" src="popup.js"></script>
 </body>
-</html>

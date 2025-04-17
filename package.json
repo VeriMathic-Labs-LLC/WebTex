@@ -11,10 +11,15 @@
     "copy-webpack-plugin": "^6.4.1",
     "css-loader": "^6.11.0",
     "file-loader": "^6.2.0",
-    "mini-css-extract-plugin": "^0.10.1",
-    "size-plugin": "^2.0.2",
+    "mini-css-extract-plugin": "^2.9.2",
+    "size-plugin": "^1.2.0",
+    "style-loader": "^4.0.0",
+    "terser-webpack-plugin": "^5.3.14",
     "webpack": "^5.99.5",
     "webpack-cli": "^4.10.0",
     "webpack-merge": "^5.10.0"
+  },
+  "dependencies": {
+    "katex": "^0.16.22"
   }
 }

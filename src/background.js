@@ -1,18 +1,15 @@
-'use strict';
+/*  src/background.js  – compiled → build/background.js */
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.local.get(
+    { enabled: true, allowedDomains: [] },
+    (v) => chrome.storage.local.set(v)        // seed on first install
+  );
+});
 
-// With background scripts you can communicate extension files.
-// For more information on background script,
-// See https://developer.chrome.com/extensions/background_pages
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'GREETINGS') {
-    const message = `Hi Ove, my name is Bac. I am from Background. It's great to hear from you.`;
-
-    // Log message coming from the `request` parameter
-    console.log(request.payload.message);
-    // Send a response message
-    sendResponse({
-      message,
-    });
-  }
+chrome.action.onClicked.addListener((tab) => {
+  chrome.storage.local.get('enabled', ({ enabled = true }) => {
+    const next = !enabled;
+    chrome.storage.local.set({ enabled: next });
+    chrome.tabs.sendMessage(tab.id, { action: 'toggle-global', enabled: next });
+  });
 });

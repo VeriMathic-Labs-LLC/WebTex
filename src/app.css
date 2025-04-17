@@ -61,3 +61,6 @@ code {
     border: .5px dashed #fff;
     opacity: .2;
 }
+@media (prefers-color-scheme: dark){
+  .katex{color:#eee!important}
+}

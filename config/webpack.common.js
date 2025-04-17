@@ -1,67 +1,74 @@
+/* config/webpack.common.js */
 'use strict';
 
-const SizePlugin = require('size-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const path                = require('path');
+const CopyWebpackPlugin   = require('copy-webpack-plugin');
+const MiniCssExtractPlugin= require('mini-css-extract-plugin');
+const SizePlugin          = require('size-plugin');
+const TerserPlugin        = require('terser-webpack-plugin');
+const PATHS               = require('./paths');
 
-const PATHS = require('./paths');
+module.exports = {
+  entry: {
+    app:        PATHS.src + '/app.js',
+    background: PATHS.src + '/background.js'
+  },
 
-// To re-use webpack configuration across templates,
-// CLI maintains a common webpack configuration file - `webpack.common.js`.
-// Whenever user creates an extension, CLI adds `webpack.common.js` file
-// in template's `config` folder
-const common = {
   output: {
-    // the build folder to output bundles and assets in.
-    path: PATHS.build,
-    // the filename template for entry chunks
     filename: '[name].js',
+    path: PATHS.build,
+    clean: true
   },
+
   devtool: 'source-map',
-  stats: {
-    all: false,
-    errors: true,
-    builtAt: true,
-  },
+  stats:   { all: false, errors: true, builtAt: true },
+
   module: {
     rules: [
-      // Help webpack in understanding CSS files imported in .js files
+      { test: /\.m?js$/, resolve: { fullySpecified: false } },
+
       {
-        test: /\.css$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader'],
-      },
-      // Check for images imported in .js files and
-      {
-        test: /\.(png|jpe?g|gif)$/i,
+        test: /\.css$/i,
         use: [
           {
-            loader: 'file-loader',
-            options: {
-              outputPath: 'images',
-              name: '[name].[ext]',
-            },
+            loader: MiniCssExtractPlugin.loader,
+            options: { publicPath: '' }
           },
-        ],
+          'css-loader'
+        ]
       },
-    ],
+
+      {
+        test: /\.(woff2?|ttf|eot|svg)$/,
+        type: 'asset/resource',
+        generator: { filename: 'katex/0.16.10/[name][ext]' }
+      }
+    ]
   },
+
   plugins: [
-    // Print file sizes
     new SizePlugin(),
-    // Copy static assets from `public` folder to `build` folder
+
+    // copy static assets without clobbering build outputs
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: '**/*',
-          context: 'public',
-        },
-      ]
+          from: 'public',
+          to:   '.',
+          noErrorOnMissing: true,
+          force: false          // <‑‑ prevents overwrite
+        }
+      ],
+      options: { concurrency: 8 }
     }),
-    // Extract CSS into separate files
-    new MiniCssExtractPlugin({
-      filename: '[name].css',
-    }),
-  ],
-};
 
-module.exports = common;
+    new MiniCssExtractPlugin({ filename: '[name].css' })
+  ],
+
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({ terserOptions: { output: { ascii_only: true } } })
+    ]
+  }
+};
