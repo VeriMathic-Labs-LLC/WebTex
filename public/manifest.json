@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "WebTeX – render LaTeX anywhere",
-  "description": "Renders inline & block LaTeX on sites that don’t support it.",
+  "name": "WebTeX – Render LaTeX Anywhere",
+  "description": "Renders Inline & Block LaTeX On Sites That Don’t Support It.",
   "version": "0.1.0",
 
   "action": { "default_popup": "index.html" },
