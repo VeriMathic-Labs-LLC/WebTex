@@ -33,7 +33,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "katex/0.16.10/*",
+        "katex/0.16.22/*",
         "app.css"
       ],
       "matches": ["<all_urls>"]

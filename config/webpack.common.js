@@ -41,7 +41,8 @@ module.exports = {
       {
         test: /\.(woff2?|ttf|eot|svg)$/,
         type: 'asset/resource',
-        generator: { filename: 'katex/0.16.10/[name][ext]' }
+        // keep path version in sync with package.json katex dependency
+        generator: { filename: 'katex/0.16.22/[name][ext]' }
       }
     ]
   },
