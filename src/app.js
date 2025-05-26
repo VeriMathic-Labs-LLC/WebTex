@@ -25,10 +25,13 @@ const DELIMITERS = [
     /* ① If mutations are only UI ripples → ignore ---------------- */
     if (mutationsOnlyRipple(muts)) return;          // ★ new guard
 
-    /* ② If user is typing in an active editor → ignore ----------- */
+    /* ② If user is selecting text → ignore ----------------------- */
+    if (userIsSelectingText()) return;              // ★ new guard
+
+    /* ③ If user is typing in an active editor → ignore ----------- */
     if (typingInsideActiveElement(muts)) return;    // ★ new guard
 
-    /* ③ Otherwise, re‑render only the nodes that were added ------ */
+    /* ④ Otherwise, re‑render only the nodes that were added ------ */
     muts.flatMap(m => [...m.addedNodes])
         .filter(n => n.nodeType === 1)
         .forEach(safeRender);
@@ -68,6 +71,12 @@ function typingInsideActiveElement (muts) {         // ★ new
   const active = document.activeElement;
   if (!active || !nodeIsEditable(active)) return false;
   return muts.every(m => active.contains(m.target));
+}
+
+/* True if the user currently has text selected -------------------- */
+function userIsSelectingText () {
+  const sel = document.getSelection();
+  return sel && sel.rangeCount > 0 && !sel.isCollapsed;
 }
 
 /* Ignore Angular / MDC hover‑ripples to avoid re‑renders ------------ */
