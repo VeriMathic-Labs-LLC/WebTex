@@ -46,12 +46,43 @@ const DELIMITERS = [
 
 /* ---------- core ---------- */
 
-function safeRender (root = document.body) {        // ★ renamed function
+function preprocessMathText(node) {
+  if (!node || !node.childNodes) return;
+  node.childNodes.forEach(child => {
+    if (child.nodeType === 3) { // Text node
+      let text = child.textContent;
+      // Handle block math: $$...$$ and \[...\]
+      text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
+        const trimmed = inner.trim();
+        return trimmed ? `$$${trimmed}$$` : m;
+      });
+      text = text.replace(/\\\[([\s\S]*?)\\\]/g, (m, inner) => {
+        const trimmed = inner.trim();
+        return trimmed ? `\\[${trimmed}\\]` : m;
+      });
+      // Handle inline math: $...$ and \(...\)
+      text = text.replace(/\$([^\$\n]+?)\$/g, (m, inner) => {
+        const trimmed = inner.trim();
+        return trimmed ? `$${trimmed}$` : m;
+      });
+      text = text.replace(/\\\(([^\)\n]+?)\\\)/g, (m, inner) => {
+        const trimmed = inner.trim();
+        return trimmed ? `\\(${trimmed}\\)` : m;
+      });
+      child.textContent = text;
+    } else if (child.nodeType === 1 && !["SCRIPT","STYLE","TEXTAREA","PRE","CODE","NOSCRIPT","INPUT","SELECT"].includes(child.tagName)) {
+      preprocessMathText(child);
+    }
+  });
+}
+
+function safeRender (root = document.body) {
+  preprocessMathText(root); // Preprocess before rendering
   renderMathInElement(root, {
     delimiters: DELIMITERS,
     ignoredTags: [
       "script","style","textarea","pre","code","noscript",
-      "input","select",                             // ★ ignore form controls
+      "input","select",
     ],
     strict: "ignore"
   });
