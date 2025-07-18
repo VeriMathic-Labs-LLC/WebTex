@@ -27,7 +27,11 @@ globalToggle.onchange = async () => {
 
   // tell content script on this tab to reload (ignore if not present)
   try { await chrome.tabs.sendMessage(currentTab.id, { action: 'toggle-global', enabled }); }
-  catch { /* no listener – safe to ignore */ }
+  catch (err) {
+    if (err && !/Receiving end does not exist/.test(err.message)) {
+      console.error('Error sending toggle-global message:', err);
+    }
+  }
 };
 
 siteToggle.onchange = async () => {
@@ -40,7 +44,11 @@ siteToggle.onchange = async () => {
   refreshSite(list);
 
   try { await chrome.tabs.sendMessage(currentTab.id, { action: 'domain-updated', allowed: list }); }
-  catch { /* ignore */ }
+  catch (err) {
+    if (err && !/Receiving end does not exist/.test(err.message)) {
+      console.error('Error sending domain-updated message:', err);
+    }
+  }
 };
 
 /* ---------- helpers ---------- */
