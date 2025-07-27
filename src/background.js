@@ -20,6 +20,9 @@ chrome.action.onClicked.addListener((tab) => {
         console.error('Error toggling enabled:', chrome.runtime.lastError);
       }
       chrome.tabs.sendMessage(tab.id, { action: 'toggle-global', enabled: next }, (res) => {
+      if (res && res.error) {
+        console.error('Content script error:', res.error);
+      }
         if (chrome.runtime.lastError) {
           // Only log if it's not the expected "no receiver" error
           if (!/Receiving end does not exist/.test(chrome.runtime.lastError.message)) {
