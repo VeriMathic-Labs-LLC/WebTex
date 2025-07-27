@@ -48,6 +48,12 @@ const DELIMITERS = [
 
 function preprocessMathText(node) {
   if (!node || !node.childNodes) return;
+  
+  // Skip nodes that contain already-rendered math
+  if (node.nodeType === 1 && hasRenderedMath(node)) {
+    return;
+  }
+  
   node.childNodes.forEach(child => {
     if (child.nodeType === 3) { // Text node
       let text = child.textContent;
@@ -99,18 +105,46 @@ function preprocessMathText(node) {
 }
 
 function safeRender (root = document.body) {
+  // Skip if this element or its parent already contains rendered math
+  if (hasRenderedMath(root)) {
+    return;
+  }
+  
   preprocessMathText(root); // Preprocess before rendering
   renderMathInElement(root, {
     delimiters: DELIMITERS,
     ignoredTags: [
       "script","style","textarea","pre","code","noscript",
-      "input","select",
+      "input","select","math","math-renderer","mjx-container"
+    ],
+    ignoredClasses: [
+      "katex","katex-mathml","katex-html","js-inline-math",
+      "MathJax","MathJax_Display","MathJax_Preview"
     ],
     strict: "ignore"
   });
 }
 
 /* ---------- helpers ---------- */
+
+/* Check if element contains already-rendered math to avoid conflicts */
+function hasRenderedMath(element) {
+  if (!element || element.nodeType !== 1) return false;
+  
+  // Check for common math renderer classes and tags
+  const mathSelectors = [
+    '.katex', '.katex-mathml', '.katex-html',
+    '.MathJax', '.MathJax_Display', '.MathJax_Preview',
+    '.js-inline-math', '.js-display-math',
+    'math-renderer', 'mjx-container', 'math'
+  ];
+  
+  // Check if this element or any child contains rendered math
+  return mathSelectors.some(selector => {
+    return element.matches && element.matches(selector) || 
+           element.querySelector && element.querySelector(selector);
+  });
+}
 
 /* Skip nodes inside <input>, <textarea>, or [contenteditable] ------- */
 function nodeIsEditable (n) {
