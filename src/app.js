@@ -51,7 +51,9 @@ function preprocessMathText(node) {
   node.childNodes.forEach(child => {
     if (child.nodeType === 3) { // Text node
       let text = child.textContent;
+      
       // Handle block math: $$...$$ and \[...\]
+      // Use [\s\S] to match any character including Unicode and newlines
       text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
         const trimmed = inner.trim();
         return trimmed ? `$$${trimmed}$$` : m;
@@ -60,15 +62,24 @@ function preprocessMathText(node) {
         const trimmed = inner.trim();
         return trimmed ? `\\[${trimmed}\\]` : m;
       });
+      
       // Handle inline math: $...$ and \(...\)
-      text = text.replace(/\$([^\$\n]+?)\$/g, (m, inner) => {
+      // Updated regex to properly handle Unicode characters and avoid matching across paragraphs
+      // Use negative lookahead/lookbehind to avoid matching $ in regular text
+      text = text.replace(/(?<!\\)\$(?!\$)([^\$\r\n]*[^\s\$][^\$\r\n]*)\$(?!\$)/g, (m, inner) => {
         const trimmed = inner.trim();
-        return trimmed ? `$${trimmed}$` : m;
+        // Only process if it looks like math (contains typical math characters)
+        if (trimmed && /[a-zA-Z\\{}^_=+\-*/()\[\]|<>∑∏∫√±≤≥≠∞∂∇∆Ω∈∉⊂⊃∪∩∀∃]/.test(trimmed)) {
+          return `$${trimmed}$`;
+        }
+        return m;
       });
-      text = text.replace(/\\\(([^\)\n]+?)\\\)/g, (m, inner) => {
+      
+      text = text.replace(/\\\(([^\)\r\n]*?)\\\)/g, (m, inner) => {
         const trimmed = inner.trim();
         return trimmed ? `\\(${trimmed}\\)` : m;
       });
+      
       child.textContent = text;
     } else if (child.nodeType === 1 && !["SCRIPT","STYLE","TEXTAREA","PRE","CODE","NOSCRIPT","INPUT","SELECT"].includes(child.tagName)) {
       preprocessMathText(child);
