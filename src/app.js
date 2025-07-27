@@ -53,31 +53,42 @@ function preprocessMathText(node) {
       let text = child.textContent;
       
       // Handle block math: $$...$$ and \[...\]
-      // Use [\s\S] to match any character including Unicode and newlines
+      // Support various spacing patterns including multi-line with extra whitespace
       text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
-        const trimmed = inner.trim();
-        return trimmed ? `$$${trimmed}$$` : m;
+        // Keep original spacing for display math - don't trim
+        return inner ? `$$${inner}$$` : m;
       });
+      
       text = text.replace(/\\\[([\s\S]*?)\\\]/g, (m, inner) => {
-        const trimmed = inner.trim();
-        return trimmed ? `\\[${trimmed}\\]` : m;
+        // Keep original spacing for display math - don't trim
+        return inner ? `\\[${inner}\\]` : m;
       });
       
       // Handle inline math: $...$ and \(...\)
-      // Updated regex to properly handle Unicode characters and avoid matching across paragraphs
-      // Use negative lookahead/lookbehind to avoid matching $ in regular text
-      text = text.replace(/(?<!\\)\$(?!\$)([^\$\r\n]*[^\s\$][^\$\r\n]*)\$(?!\$)/g, (m, inner) => {
+      // Support equations adjacent to text (no spaces required)
+      // More permissive pattern that allows any content between delimiters
+      text = text.replace(/(?<!\\)\$(?!\$)([^\$\r\n]+?)\$(?!\$)/g, (m, inner) => {
+        // More lenient math detection - check for common LaTeX patterns
+        const mathPatterns = [
+          /\\[a-zA-Z]+/, // LaTeX commands like \eq, \alpha, \sum
+          /[a-zA-Z]_[{a-zA-Z0-9}]/, // Subscripts
+          /[a-zA-Z]\^[{a-zA-Z0-9}]/, // Superscripts
+          /[{}\[\]()]/, // Braces and brackets
+          /[=+\-*/|<>≤≥≠∞∂∇∆Ω∈∉⊂⊃∪∩∀∃∑∏∫√±]/, // Math symbols
+          /\\[()\[\]]/, // Escaped delimiters
+          /[a-zA-Z][a-zA-Z0-9]*/, // Variables (single or multi-char)
+        ];
+        
         const trimmed = inner.trim();
-        // Only process if it looks like math (contains typical math characters)
-        if (trimmed && /[a-zA-Z\\{}^_=+\-*/()\[\]|<>∑∏∫√±≤≥≠∞∂∇∆Ω∈∉⊂⊃∪∩∀∃]/.test(trimmed)) {
-          return `$${trimmed}$`;
+        if (trimmed && mathPatterns.some(pattern => pattern.test(inner))) {
+          return `$${inner}$`; // Keep original spacing within delimiters
         }
         return m;
       });
       
+      // Handle \(...\) with similar logic
       text = text.replace(/\\\(([^\)\r\n]*?)\\\)/g, (m, inner) => {
-        const trimmed = inner.trim();
-        return trimmed ? `\\(${trimmed}\\)` : m;
+        return inner ? `\\(${inner}\\)` : m;
       });
       
       child.textContent = text;
