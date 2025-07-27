@@ -12,12 +12,34 @@ const DELIMITERS = [
 ];
 
 /* -------------------------------------------------- */
+// Cross-browser safe inline-math detector.
+// Chrome supports the precise negative-look-behind pattern, but Firefox/Safari do not.
+// We attempt to compile the sharper pattern and fall back to a simpler one.
+const INLINE_MATH_REGEX = (() => {
+  try {
+    return new RegExp('(?<!\\\\)\\$(?!\\$)([^\\$\\r\\n]*?)\\$(?!\\$)', 'g');
+  } catch (_) {
+    // Fallback: "$...$" (later we’ll filter out escaped dollars in the replacer)
+    return /\$([^\$\r\n]*?)\$/g;
+  }
+})();
+
+/* -------------------------------------------------- */
 (async function main () {
   const { enabled = true, allowedDomains = [] } =
     await chrome.storage.local.get(["enabled", "allowedDomains"]);
 
-  if (!enabled || !allowedDomains.includes(location.hostname)) return;
-
+  if (!enabled) {
+    return;
+  }
+  
+  // Allow local files (file://) and check domain allowlist for web pages
+  const isLocalFile = location.protocol === 'file:';
+  const isDomainAllowed = allowedDomains.includes(location.hostname);
+  
+  if (!isLocalFile && !isDomainAllowed) {
+    return;
+  }
   safeRender();                              // ★ renamed from renderWholePage()
 
   /* re‑render on DOM changes ------------------------------------- */
@@ -49,52 +71,52 @@ const DELIMITERS = [
 function preprocessMathText(node) {
   if (!node || !node.childNodes) return;
   
-  // Skip nodes that contain already-rendered math
-  if (node.nodeType === 1 && hasRenderedMath(node)) {
+  // If the node itself is a rendered math element, skip it
+  if (node.nodeType === 1 && node.matches('math-renderer, .katex, .MathJax, .MathJax_Display')) {
     return;
   }
+  
+  // Try to reconstruct fragmented LaTeX before processing
+  reconstructFragmentedMath(node);
   
   node.childNodes.forEach(child => {
     if (child.nodeType === 3) { // Text node
       let text = child.textContent;
       
       // Handle block math: $$...$$ and \[...\]
-      // Support various spacing patterns including multi-line with extra whitespace
+      // Keep original spacing for display math
       text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
-        // Keep original spacing for display math - don't trim
-        return inner ? `$$${inner}$$` : m;
+        return inner !== undefined ? '$$' + inner + '$$' : m;
       });
       
       text = text.replace(/\\\[([\s\S]*?)\\\]/g, (m, inner) => {
-        // Keep original spacing for display math - don't trim
-        return inner ? `\\[${inner}\\]` : m;
+        return inner !== undefined ? '\\[' + inner + '\\]' : m;
       });
       
       // Handle inline math: $...$ and \(...\)
-      // Support equations adjacent to text (no spaces required)
-      // More permissive pattern that allows any content between delimiters
-      text = text.replace(/(?<!\\)\$(?!\$)([^\$\r\n]+?)\$(?!\$)/g, (m, inner) => {
-        // More lenient math detection - check for common LaTeX patterns
-        const mathPatterns = [
-          /\\[a-zA-Z]+/, // LaTeX commands like \eq, \alpha, \sum
-          /[a-zA-Z]_[{a-zA-Z0-9}]/, // Subscripts
-          /[a-zA-Z]\^[{a-zA-Z0-9}]/, // Superscripts
-          /[{}\[\]()]/, // Braces and brackets
-          /[=+\-*/|<>≤≥≠∞∂∇∆Ω∈∉⊂⊃∪∩∀∃∑∏∫√±]/, // Math symbols
-          /\\[()\[\]]/, // Escaped delimiters
-          /[a-zA-Z][a-zA-Z0-9]*/, // Variables (single or multi-char)
-        ];
-        
+      // Simplified approach - less restrictive pattern matching
+      text = text.replace(INLINE_MATH_REGEX, (m, inner, offset, str) => {
+        // If we are on the fallback regex, skip matches where opening $ is escaped
+        if (offset > 0 && str[offset - 1] === '\\') return m;
         const trimmed = inner.trim();
-        if (trimmed && mathPatterns.some(pattern => pattern.test(inner))) {
-          return `$${inner}$`; // Keep original spacing within delimiters
+        // Accept any non-empty content that contains typical math characters
+        // This is more permissive and handles mixed content better
+        if (trimmed && (
+          /\\[a-zA-Z]/.test(trimmed) ||           // LaTeX commands
+          /[a-zA-Z]_/.test(trimmed) ||            // Subscripts
+          /[a-zA-Z]\^/.test(trimmed) ||           // Superscripts  
+          /[{}\[\]()]/.test(trimmed) ||           // Braces/brackets
+          /[=+\-*/≤≥≠∞∂∇∆Ω∈∉⊂⊃∪∩∀∃∑∏∫√±]/.test(trimmed) || // Math symbols
+          (/[a-zA-Z]/.test(trimmed) && /[0-9]/.test(trimmed)) // Variables with numbers
+        )) {
+          return '$' + trimmed + '$';
         }
         return m;
       });
       
-      // Handle \(...\) with similar logic
+      // Handle \(...\) - parentheses delimited inline math
       text = text.replace(/\\\(([^\)\r\n]*?)\\\)/g, (m, inner) => {
-        return inner ? `\\(${inner}\\)` : m;
+        return inner !== undefined ? '\\(' + inner + '\\)' : m;
       });
       
       child.textContent = text;
@@ -105,32 +127,93 @@ function preprocessMathText(node) {
 }
 
 function safeRender (root = document.body) {
-  // Skip if this element or its parent already contains rendered math
-  if (hasRenderedMath(root)) {
+  // Skip if this subtree is already fully rendered (contains only rendered math)
+  if (hasRenderedMath(root) && !root.querySelector('[data-raw-math]')) {
     return;
   }
+  // NOTE: We intentionally do NOT skip rendering even if the root contains
+  // some already-rendered math, because there may be raw LaTeX mixed in.
+  // Granular skipping is handled inside preprocessMathText for each node.
   
-  preprocessMathText(root); // Preprocess before rendering
-  renderMathInElement(root, {
-    delimiters: DELIMITERS,
-    ignoredTags: [
-      "script","style","textarea","pre","code","noscript",
-      "input","select","math","math-renderer","mjx-container"
-    ],
-    ignoredClasses: [
-      "katex","katex-mathml","katex-html","js-inline-math",
-      "MathJax","MathJax_Display","MathJax_Preview"
-    ],
-    strict: "ignore"
-  });
+  preprocessMathText(root);
+  
+  try {
+    renderMathInElement(root, {
+      delimiters: DELIMITERS,
+      ignoredTags: [
+        "script","style","textarea","pre","code","noscript",
+        "input","select","math","math-renderer","mjx-container"
+      ],
+      ignoredClasses: [
+        "katex","katex-mathml","katex-html","js-inline-math",
+        "MathJax","MathJax_Display","MathJax_Preview"
+      ],
+      strict: "ignore"
+    });
+  } catch (error) {
+    // Silently handle rendering errors
+  }
 }
 
 /* ---------- helpers ---------- */
 
+/* Reconstruct fragmented LaTeX that has been split across HTML elements */
+function reconstructFragmentedMath(node) {
+  /*
+    We keep this routine conservative – it ONLY fixes obviously broken fragmentation
+    we have observed in the wild (inline <em>/<strong> or <br> inside LaTeX).
+    It now contains basic XSS guards and avoids writing back if <script> tags are present.
+  */
+  if (!node || node.nodeType !== 1) return;
+  
+  // Skip nodes that already contain rendered math to avoid conflicts
+  if (hasRenderedMath(node)) {
+    return;
+  }
+  
+  const htmlContent = node.innerHTML || '';
+  // Never touch nodes that already include <script> tags – avoid re-injection.
+  if (/\<script/i.test(htmlContent)) return;
+  
+  // Only process if we find LaTeX delimiters that might be fragmented
+  const hasLatexDelimiters = /\$\$|\\\[|\\\]|\$|\\\(|\\\)/.test(htmlContent);
+  if (!hasLatexDelimiters) return;
+  
+  try {
+    let fixedHTML = htmlContent;
+    
+    // Handle common fragmentation patterns more carefully
+    // Pattern 1: LaTeX split by <em> or <strong> tags
+    fixedHTML = fixedHTML.replace(
+      /\$([^$]*?)<(em|strong|i|b)>([^<]*?)<\/(em|strong|i|b)>([^$]*?)\$/g,
+      '$$$1$3$5$$'
+    );
+    
+    // Pattern 2: Block math split by formatting tags
+    fixedHTML = fixedHTML.replace(
+      /\$\$([^$]*?)<(em|strong|i|b)>([^<]*?)<\/(em|strong|i|b)>([^$]*?)\$\$/g,
+      '$$$$1$3$5$$$$'
+    );
+    
+    // Pattern 3: LaTeX split by line breaks or spans (but not rendered math)
+    fixedHTML = fixedHTML.replace(
+      /\$([^$]*?)<br\s*\/??>([^$]*?)\$/g,
+      '$$$1 $2$$'
+    );
+    
+    // Only apply changes if we actually modified something and it looks safe
+    if (fixedHTML !== htmlContent && !/<span[^>]*class="katex/.test(fixedHTML)) {
+      node.innerHTML = fixedHTML;
+    }
+  } catch (e) {
+    // Silently handle fragmented math reconstruction errors
+  }
+}
+
 /* Check if element contains already-rendered math to avoid conflicts */
 function hasRenderedMath(element) {
   if (!element || element.nodeType !== 1) return false;
-  
+
   // Check for common math renderer classes and tags
   const mathSelectors = [
     '.katex', '.katex-mathml', '.katex-html',
@@ -138,7 +221,7 @@ function hasRenderedMath(element) {
     '.js-inline-math', '.js-display-math',
     'math-renderer', 'mjx-container', 'math'
   ];
-  
+
   // Check if this element or any child contains rendered math
   return mathSelectors.some(selector => {
     return element.matches && element.matches(selector) || 
@@ -148,6 +231,8 @@ function hasRenderedMath(element) {
 
 /* Skip nodes inside <input>, <textarea>, or [contenteditable] ------- */
 function nodeIsEditable (n) {
+  // Treat [contenteditable="false"] as non-editable despite the isContentEditable flag
+  if (n.getAttribute && n.getAttribute('contenteditable') === 'false') return false;
   return n.isContentEditable ||
          (n.nodeType === 1 &&
           /^(INPUT|TEXTAREA|SELECT)$/.test(n.tagName));
