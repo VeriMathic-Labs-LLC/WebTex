@@ -1,7 +1,7 @@
 {
   "name": "webtex",
   "version": "1.2.2",
-  "description": "Katex",
+  "description": "Renders Inline & Block LaTeX On Sites That Don’t Support It.",
   "private": true,
   "scripts": {
     "watch": "node ./node_modules/webpack/bin/webpack.js --mode=development --watch --config config/webpack.config.js",
