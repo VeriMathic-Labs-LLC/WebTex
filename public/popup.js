@@ -10,7 +10,16 @@ let currentTab, host;
 /* ---------- init ---------- */
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
   currentTab = tab;
-  host       = new URL(tab.url).hostname;
+  
+  // Handle special URLs (chrome://, about:, etc.) that can't be parsed
+  try {
+    const url = new URL(tab.url);
+    host = url.hostname || 'local';
+  } catch (e) {
+    // For special pages like chrome:// or about:
+    host = tab.url.split(':')[0] || 'special';
+  }
+  
   domainSpan.textContent = host;
 
   const { allowedDomains = [] } = await chrome.storage.local.get('allowedDomains');
@@ -28,8 +37,14 @@ siteToggle.onchange = async () => {
   refreshSite(list);
 
   // tell content script on this tab to reload to apply changes
-  try { await chrome.tabs.sendMessage(currentTab.id, { action: 'domain-updated', allowed: list }); }
-  catch { /* ignore */ }
+  if (currentTab?.id) {
+    try { 
+      await chrome.tabs.sendMessage(currentTab.id, { action: 'domain-updated', allowed: list }); 
+    } catch (e) { 
+      // Content script might not be loaded on this page
+      console.debug('WebTeX: Could not send message to tab', e);
+    }
+  }
 };
 
 /* ---------- helpers ---------- */

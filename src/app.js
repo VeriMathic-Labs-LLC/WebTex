@@ -15,6 +15,15 @@ const DELIMITERS = [
 // Inline math detector with negative lookbehind (Chromium supports this)
 const INLINE_MATH_REGEX = /(?<!\\)\$(?!\$)([^\$\r\n]*?)\$(?!\$)/g;
 
+// Reusable entity decoder for performance
+function decodeHTMLEntities(text) {
+  return text.replace(/&amp;/g, '&')
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'");
+}
+
 /* -------------------------------------------------- */
 let observer = null;
 let isEnabled = false;
@@ -41,6 +50,7 @@ let isEnabled = false;
         // Turning ON - enable rendering
         isEnabled = true;
         enableRendering();
+        setupNavigationHandlers(); // Also setup navigation detection
       } else if (!newIsEnabled && isEnabled) {
         // Turning OFF - disable rendering and restore original text
         isEnabled = false;
@@ -48,7 +58,104 @@ let isEnabled = false;
       }
     }
   });
+
+  /* Handle single-page app navigation */
+  setupNavigationHandlers();
 })();
+
+// Keep track of whether navigation handlers are already set up
+let navigationHandlersSetup = false;
+
+function setupNavigationHandlers() {
+  if (!isEnabled || navigationHandlersSetup) return;
+  
+  navigationHandlersSetup = true;
+  let lastUrl = location.href;
+  
+  // Handle clicks on links (for traditional navigation)
+  document.addEventListener('click', (e) => {
+    // Find the closest anchor element
+    const link = e.target.closest('a');
+    if (link && link.href && !link.target && link.href.startsWith(location.origin)) {
+      // Internal link clicked - navigation will happen
+      setTimeout(() => {
+        if (location.href !== lastUrl) {
+          lastUrl = location.href;
+          handleNavigation();
+        }
+      }, 50);
+    }
+  }, true);
+  
+  // Handle back/forward navigation
+  window.addEventListener('popstate', () => {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      handleNavigation();
+    }
+  });
+  
+  // Override pushState and replaceState to detect programmatic navigation
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+  
+  history.pushState = function() {
+    originalPushState.apply(history, arguments);
+    setTimeout(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        handleNavigation();
+      }
+    }, 0);
+  };
+  
+  history.replaceState = function() {
+    originalReplaceState.apply(history, arguments);
+    setTimeout(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        handleNavigation();
+      }
+    }, 0);
+  };
+  
+  // Monitor for significant DOM changes that might indicate navigation
+  // This helps catch navigation in SPAs that don't change URLs
+  watchForMajorDOMChanges();
+}
+
+function watchForMajorDOMChanges() {
+  let contentHash = '';
+  
+  // Function to generate a simple hash of main content areas
+  function getContentHash() {
+    const main = document.querySelector('main, article, [role="main"], .content, #content') || document.body;
+    // Get a simple representation of the content structure
+    return main.children.length + '-' + main.textContent.length;
+  }
+  
+  // Check periodically for major content changes
+  setInterval(() => {
+    const newHash = getContentHash();
+    if (newHash !== contentHash && contentHash !== '') {
+      contentHash = newHash;
+      handleNavigation();
+    }
+    contentHash = newHash;
+  }, 1000);
+}
+
+function handleNavigation() {
+  if (!isEnabled) return;
+  
+  // Re-render the entire page on navigation
+  console.debug('WebTeX: Detected navigation, re-rendering math');
+  
+  // Small delay to ensure new content is loaded
+  setTimeout(() => {
+    safeRender();
+  }, 100);
+}
 
 function enableRendering() {
   safeRender();                              // ★ renamed from renderWholePage()
@@ -82,39 +189,46 @@ function disableRendering() {
   // Remove all rendered KaTeX elements and restore original text
   const katexElements = document.querySelectorAll('.katex');
   katexElements.forEach(elem => {
-    // Find the original math delimiter
-    const mathAnnotation = elem.querySelector('annotation[encoding="application/x-tex"]');
-    if (mathAnnotation) {
+    try {
+      // Find the original math delimiter
+      const mathAnnotation = elem.querySelector('annotation[encoding="application/x-tex"]');
+      if (!mathAnnotation) return;
+      
       const mathContent = mathAnnotation.textContent;
+      
+      // Check if parent element still exists (element might have been removed)
+      if (!elem.parentNode) return;
       
       // Determine if it was display or inline math
       const isDisplay = elem.classList.contains('katex-display');
       let originalText = mathContent;
       
-      // Try to restore with proper delimiters
-      if (elem.previousSibling && elem.previousSibling.nodeType === 3) {
-        const prevText = elem.previousSibling.textContent;
-        if (prevText.endsWith('$$')) {
-          originalText = '$$' + mathContent + '$$';
-        } else if (prevText.endsWith('\\[')) {
-          originalText = '\\[' + mathContent + '\\]';
-        } else if (prevText.endsWith('$')) {
-          originalText = '$' + mathContent + '$';
-        } else if (prevText.endsWith('\\(')) {
-          originalText = '\\(' + mathContent + '\\)';
-        }
-      } else {
-        // Fallback: guess based on display type
-        if (isDisplay) {
+      // Try to restore with proper delimiters based on context
+      if (isDisplay) {
+        // For display math, check if it contains environments
+        if (/\\begin\{/.test(mathContent)) {
           originalText = '$$' + mathContent + '$$';
         } else {
-          originalText = '$' + mathContent + '$';
+          // Could be $$ or \[ \], default to $$
+          originalText = '$$' + mathContent + '$$';
         }
+      } else {
+        // For inline math, default to $
+        originalText = '$' + mathContent + '$';
       }
       
       // Replace the KaTeX element with a text node
       const textNode = document.createTextNode(originalText);
-      elem.parentNode.replaceChild(textNode, elem);
+      
+      // Handle case where KaTeX might have wrapped content in additional spans
+      const parent = elem.parentNode;
+      if (parent.classList && parent.classList.contains('katex-display')) {
+        parent.parentNode.replaceChild(textNode, parent);
+      } else {
+        elem.parentNode.replaceChild(textNode, elem);
+      }
+    } catch (e) {
+      console.warn('WebTeX: Error restoring math element', e);
     }
   });
 }
@@ -128,21 +242,13 @@ function preprocessMathText(node) {
       let text = child.textContent;
       
       // First, decode HTML entities
-      text = text.replace(/&amp;/g, '&')
-                 .replace(/&lt;/g, '<')
-                 .replace(/&gt;/g, '>')
-                 .replace(/&quot;/g, '"')
-                 .replace(/&#39;/g, "'");
+      text = decodeHTMLEntities(text);
       
       // Handle block math: $$...$$ and \[...\]
       // Keep original spacing for display math
       text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
         // Decode entities within math content as well
-        const decodedInner = inner.replace(/&amp;/g, '&')
-                                  .replace(/&lt;/g, '<')
-                                  .replace(/&gt;/g, '>')
-                                  .replace(/&quot;/g, '"')
-                                  .replace(/&#39;/g, "'");
+        const decodedInner = decodeHTMLEntities(inner);
         return inner !== undefined ? '$$' + decodedInner + '$$' : m;
       });
       
@@ -162,11 +268,7 @@ function preprocessMathText(node) {
         if (offset > 0 && str[offset - 1] === '$') return m;
         if (offset + m.length < str.length && str[offset + m.length] === '$') return m;
         
-        const decodedContent = content.replace(/&amp;/g, '&')
-                                      .replace(/&lt;/g, '<')
-                                      .replace(/&gt;/g, '>')
-                                      .replace(/&quot;/g, '"')
-                                      .replace(/&#39;/g, "'");
+        const decodedContent = decodeHTMLEntities(content);
         return '$$\\begin{' + env + '}' + decodedContent + '\\end{' + env + '}$$';
       });
       
@@ -191,11 +293,7 @@ function preprocessMathText(node) {
           (/[a-zA-Z]/.test(trimmed) && /[0-9]/.test(trimmed)) // Variables with numbers
         )) {
           // Decode entities within inline math too
-          const decodedTrimmed = trimmed.replace(/&amp;/g, '&')
-                                       .replace(/&lt;/g, '<')
-                                       .replace(/&gt;/g, '>')
-                                       .replace(/&quot;/g, '"')
-                                       .replace(/&#39;/g, "'");
+          const decodedTrimmed = decodeHTMLEntities(trimmed);
           return '$' + decodedTrimmed + '$';
         }
         return m;
@@ -203,7 +301,11 @@ function preprocessMathText(node) {
       
       // Handle \(...\) - parentheses delimited inline math
       text = text.replace(/\\\(([^\)\r\n]*?)\\\)/g, (m, inner) => {
-        return inner !== undefined ? '\\(' + inner + '\\)' : m;
+        if (inner !== undefined) {
+          const decodedInner = decodeHTMLEntities(inner);
+          return '\\(' + decodedInner + '\\)';
+        }
+        return m;
       });
       
       child.textContent = text;
@@ -214,15 +316,24 @@ function preprocessMathText(node) {
 }
 
 function safeRender (root = document.body) {
-  preprocessMathText(root); // Preprocess before rendering
-  renderMathInElement(root, {
-    delimiters: DELIMITERS,
-    ignoredTags: [
-      "script","style","textarea","pre","code","noscript",
-      "input","select",
-    ],
-    strict: "ignore"
-  });
+  try {
+    preprocessMathText(root); // Preprocess before rendering
+    renderMathInElement(root, {
+      delimiters: DELIMITERS,
+      ignoredTags: [
+        "script","style","textarea","pre","code","noscript",
+        "input","select",
+      ],
+      strict: "ignore",
+      errorCallback: (msg, err) => {
+        console.warn('KaTeX rendering error:', msg, err);
+        // Continue rendering other expressions
+        return msg;
+      }
+    });
+  } catch (e) {
+    console.error('WebTeX: Error during rendering', e);
+  }
 }
 
 /* ---------- helpers ---------- */
