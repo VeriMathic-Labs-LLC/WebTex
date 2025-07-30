@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test GitHub-style Math</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+    </style>
+</head>
+<body>
+    <div class="markdown-body">
+        <h1>Testing WebTeX Extension</h1>
+        
+        <h2>DIN Model Equations</h2>
+        
+        <p>The attention weight is:</p>
+        <p>$$a(u, i) = \frac{\exp(z(u, i))}{\sum_{j \in \{h_1, h_2, ..., h_H\}} \exp(z(u, j))}$$</p>
+        
+        <p>Where $z(u, i) = v_u^T A v_i + b$ is the attention score.</p>
+        
+        <h2>Inline Math Examples</h2>
+        <p>The model uses $D \times K$ dimensional embeddings where $D$ is the embedding dimension and $K$ is the number of features.</p>
+        
+        <h2>Block Math Example</h2>
+        $$e_i = pooling(e_{i1}, e_{i2}, ...e_{ik})$$
+        
+        <h2>Complex Example from the GitHub page</h2>
+        $$L=-\frac{1}{KN} \sum_{(x,y) \in \mathcal{S}} (y \log p(x) + (1-y) \log (1-p(x)))$$
+        
+        <h2>Alternative Syntax</h2>
+        <p>Using parentheses: \(a^2 + b^2 = c^2\)</p>
+        <p>Using brackets: \[\sum_{i=1}^{n} i = \frac{n(n+1)}{2}\]</p>
+    </div>
+</body>
+</html>

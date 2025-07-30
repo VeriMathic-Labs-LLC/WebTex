@@ -1,10 +1,8 @@
 /* popup.js – runs in the extension popup */
 const $ = (id) => document.getElementById(id);
 
-const globalToggle = $('globalToggle');
 const siteToggle   = $('siteToggle');
 const siteStatus   = $('siteStatus');
-const globalStatus = $('globalStatus');
 const domainSpan   = $('domainName');
 
 let currentTab, host;
@@ -15,25 +13,11 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
   host       = new URL(tab.url).hostname;
   domainSpan.textContent = host;
 
-  const st = await chrome.storage.local.get(['enabled', 'allowedDomains']);
-  refreshUI(st.enabled !== false, st.allowedDomains ?? []);
+  const st = await chrome.storage.local.get(['allowedDomains']);
+  refreshUI(st.allowedDomains ?? []);
 });
 
 /* ---------- event handlers ---------- */
-globalToggle.onchange = async () => {
-  const enabled = globalToggle.checked;
-  await chrome.storage.local.set({ enabled });
-  refreshGlobal(enabled);
-
-  // tell content script on this tab to reload (ignore if not present)
-  try { await chrome.tabs.sendMessage(currentTab.id, { action: 'toggle-global', enabled }); }
-  catch (err) {
-    if (err && !/Receiving end does not exist/.test(err.message)) {
-      console.error('Error sending toggle-global message:', err);
-    }
-  }
-};
-
 siteToggle.onchange = async () => {
   const { allowedDomains = [] } = await chrome.storage.local.get('allowedDomains');
   const list = siteToggle.checked
@@ -43,24 +27,13 @@ siteToggle.onchange = async () => {
   await chrome.storage.local.set({ allowedDomains: list });
   refreshSite(list);
 
-  try { await chrome.tabs.sendMessage(currentTab.id, { action: 'domain-updated', allowed: list }); }
-  catch (err) {
-    if (err && !/Receiving end does not exist/.test(err.message)) {
-      console.error('Error sending domain-updated message:', err);
-    }
-  }
+  // Reload the page to apply changes
+  chrome.tabs.reload(currentTab.id);
 };
 
 /* ---------- helpers ---------- */
-function refreshUI (enabled, list) {
-  refreshGlobal(enabled);
+function refreshUI (list) {
   refreshSite(list);
-}
-
-function refreshGlobal (enabled) {
-  globalToggle.checked = enabled;
-  globalStatus.textContent = enabled ? 'ON' : 'OFF';
-  globalStatus.className   = 'chip ' + (enabled ? 'on' : 'off');
 }
 
 function refreshSite (list) {
