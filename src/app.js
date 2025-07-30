@@ -79,6 +79,9 @@ function preprocessMathText(node) {
   // Try to reconstruct fragmented LaTeX before processing
   reconstructFragmentedMath(node);
   
+  // Normalize common Unicode characters to standard LaTeX
+  normalizeUnicodeMath(node);
+  
   node.childNodes.forEach(child => {
     if (child.nodeType === 3) { // Text node
       let text = child.textContent;
@@ -94,20 +97,23 @@ function preprocessMathText(node) {
       });
       
       // Handle inline math: $...$ and \(...\)
-      // Simplified approach - less restrictive pattern matching
+      // More permissive approach that handles Unicode characters and various LaTeX patterns
       text = text.replace(INLINE_MATH_REGEX, (m, inner, offset, str) => {
         // If we are on the fallback regex, skip matches where opening $ is escaped
         if (offset > 0 && str[offset - 1] === '\\') return m;
         const trimmed = inner.trim();
-        // Accept any non-empty content that contains typical math characters
-        // This is more permissive and handles mixed content better
+        
+        // More permissive math detection that includes Unicode characters
         if (trimmed && (
           /\\[a-zA-Z]/.test(trimmed) ||           // LaTeX commands
           /[a-zA-Z]_/.test(trimmed) ||            // Subscripts
           /[a-zA-Z]\^/.test(trimmed) ||           // Superscripts  
-          /[{}\[\]()]/.test(trimmed) ||           // Braces/brackets
+          /[{}\[\]()｛｝（）]/.test(trimmed) ||     // Braces/brackets (including Unicode)
           /[=+\-*/≤≥≠∞∂∇∆Ω∈∉⊂⊃∪∩∀∃∑∏∫√±]/.test(trimmed) || // Math symbols
-          (/[a-zA-Z]/.test(trimmed) && /[0-9]/.test(trimmed)) // Variables with numbers
+          /[a-zA-Z]/.test(trimmed) ||             // Any text with letters
+          /[0-9]/.test(trimmed) ||                // Any text with numbers
+          /[×÷]/.test(trimmed) ||                 // Additional math symbols
+          /[|]/.test(trimmed)                     // Pipe character (used in math)
         )) {
           return '$' + trimmed + '$';
         }
@@ -148,10 +154,12 @@ function safeRender (root = document.body) {
         "katex","katex-mathml","katex-html","js-inline-math",
         "MathJax","MathJax_Display","MathJax_Preview"
       ],
-      strict: "ignore"
+      strict: "ignore",
+      throwOnError: false,
+      errorColor: '#cc0000'
     });
   } catch (error) {
-    // Silently handle rendering errors
+    console.warn('KaTeX rendering error:', error);
   }
 }
 
@@ -208,6 +216,35 @@ function reconstructFragmentedMath(node) {
   } catch (e) {
     // Silently handle fragmented math reconstruction errors
   }
+}
+
+/* Normalize Unicode characters to standard LaTeX */
+function normalizeUnicodeMath(node) {
+  if (!node || !node.childNodes) return;
+  
+  node.childNodes.forEach(child => {
+    if (child.nodeType === 3) { // Text node
+      let text = child.textContent;
+      
+      // Normalize common Unicode characters to standard LaTeX
+      text = text.replace(/｛/g, '{');  // Fullwidth left brace
+      text = text.replace(/｝/g, '}');  // Fullwidth right brace
+      text = text.replace(/（/g, '(');  // Fullwidth left parenthesis
+      text = text.replace(/）/g, ')');  // Fullwidth right parenthesis
+      text = text.replace(/×/g, '\\times ');  // Multiplication symbol
+      text = text.replace(/÷/g, '\\div ');    // Division symbol
+      
+      // Fix common LaTeX syntax errors
+      text = text.replace(/e_\(/g, 'e_{');  // Fix e_(i2} -> e_{i2}
+      text = text.replace(/Ifrac/g, '\\frac');  // Fix Ifrac -> \frac
+      text = text.replace(/Isum/g, '\\sum');    // Fix Isum -> \sum
+      text = text.replace(/Ilog/g, '\\log');    // Fix Ilog -> \log
+      
+      child.textContent = text;
+    } else if (child.nodeType === 1 && !["SCRIPT","STYLE","TEXTAREA","PRE","CODE","NOSCRIPT","INPUT","SELECT"].includes(child.tagName)) {
+      normalizeUnicodeMath(child);
+    }
+  });
 }
 
 /* Check if element contains already-rendered math to avoid conflicts */

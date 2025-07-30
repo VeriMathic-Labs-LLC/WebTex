@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LaTeX Parsing Fixes Test</title>
+    <script src="build/app.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .original { background-color: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <h1>LaTeX Parsing Fixes Test</h1>
+    
+    <div class="test-section original">
+        <h2>Original Problematic Examples</h2>
+        
+        <h3>Test 1: Simple inline math (should work)</h3>
+        <p>$D\times K$</p>
+        
+        <h3>Test 2: Block math with syntax error (should be fixed)</h3>
+        <p>$$ e_i=pooling(e_{i1}, e_(i2}, ...e_{ik}) $$</p>
+        
+        <h3>Test 3: Complex block math with Unicode issues (should be fixed)</h3>
+        <p>$$L=-Ifrac｛1KN｝ |sum_｛（boldsymbol｛x } y) \in \mathcal(S}} (y |log p(\boldsymbol{x)) +(1-y) \log (1-p/\boldsymbol{x}))) $$</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Additional Test Cases</h2>
+        
+        <h3>Test 4: Unicode characters</h3>
+        <p>$x × y$ and $a ÷ b$</p>
+        
+        <h3>Test 5: Mixed Unicode and standard braces</h3>
+        <p>$$f(x) = \sum_{i=1}^{n} x_i × y_i$$</p>
+        
+        <h3>Test 6: Common LaTeX patterns</h3>
+        <p>$$\frac{1}{2} + \sum_{i=1}^{n} x_i$$</p>
+        
+        <h3>Test 7: Pipe character in math</h3>
+        <p>$P(A|B) = \frac{P(A \cap B)}{P(B)}$</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Results</h2>
+        <ul>
+            <li>Test 1: Should render as inline math</li>
+            <li>Test 2: Should fix the syntax error and render</li>
+            <li>Test 3: Should normalize Unicode characters and render</li>
+            <li>Test 4: Should convert Unicode symbols to LaTeX commands</li>
+            <li>Test 5: Should handle mixed Unicode and standard characters</li>
+            <li>Test 6: Should render standard LaTeX correctly</li>
+            <li>Test 7: Should handle pipe character in math context</li>
+        </ul>
+    </div>
+    
+    <script>
+        // Add some debugging
+        setTimeout(() => {
+            console.log('LaTeX parsing test completed');
+            const mathElements = document.querySelectorAll('.katex, .katex-display');
+            console.log(`Found ${mathElements.length} rendered math elements`);
+        }, 1000);
+    </script>
+</body>
+</html>

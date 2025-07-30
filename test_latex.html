@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LaTeX Parsing Test</title>
+    <script src="build/app.js"></script>
+</head>
+<body>
+    <h1>LaTeX Parsing Test</h1>
+    
+    <h2>Test 1: Simple inline math</h2>
+    <p>This should work: $D\times K$</p>
+    
+    <h2>Test 2: Block math with syntax error</h2>
+    <p>This has a syntax error (missing brace):</p>
+    $$ e_i=pooling(e_{i1}, e_(i2}, ...e_{ik}) $$
+    
+    <h2>Test 3: Complex block math with Unicode issues</h2>
+    <p>This has Unicode characters and syntax issues:</p>
+    $$L=-Ifrac｛1KN｝ |sum_｛（boldsymbol｛x } y) \in \mathcal(S}} (y |log p(\boldsymbol{x)) +(1-y) \log (1-p/\boldsymbol{x}))) $$
+    
+    <h2>Test 4: Corrected versions</h2>
+    <p>Corrected version of Test 2:</p>
+    $$ e_i=pooling(e_{i1}, e_{i2}, ...e_{ik}) $$
+    
+    <p>Corrected version of Test 3:</p>
+    $$L=-\frac{1}{KN} \sum_{(x,y) \in \mathcal{S}} (y \log p(x) + (1-y) \log (1-p(x))) $$
+</body>
+</html>
