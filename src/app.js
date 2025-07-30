@@ -70,15 +70,6 @@ const INLINE_MATH_REGEX = (() => {
 
 function preprocessMathText(node) {
   if (!node || !node.childNodes) return;
-  
-  // If the node itself is a rendered math element, skip it
-  if (node.nodeType === 1 && node.matches('math-renderer, .katex, .MathJax, .MathJax_Display')) {
-    return;
-  }
-  
-  // Try to reconstruct fragmented LaTeX before processing
-  reconstructFragmentedMath(node);
-  
   node.childNodes.forEach(child => {
     if (child.nodeType === 3) { // Text node
       let text = child.textContent;
@@ -127,107 +118,18 @@ function preprocessMathText(node) {
 }
 
 function safeRender (root = document.body) {
-  // Skip if this subtree is already fully rendered (contains only rendered math)
-  if (hasRenderedMath(root) && !root.querySelector('[data-raw-math]')) {
-    return;
-  }
-  // NOTE: We intentionally do NOT skip rendering even if the root contains
-  // some already-rendered math, because there may be raw LaTeX mixed in.
-  // Granular skipping is handled inside preprocessMathText for each node.
-  
-  preprocessMathText(root);
-  
-  try {
-    renderMathInElement(root, {
-      delimiters: DELIMITERS,
-      ignoredTags: [
-        "script","style","textarea","pre","code","noscript",
-        "input","select","math","math-renderer","mjx-container"
-      ],
-      ignoredClasses: [
-        "katex","katex-mathml","katex-html","js-inline-math",
-        "MathJax","MathJax_Display","MathJax_Preview"
-      ],
-      strict: "ignore"
-    });
-  } catch (error) {
-    // Silently handle rendering errors
-  }
+  preprocessMathText(root); // Preprocess before rendering
+  renderMathInElement(root, {
+    delimiters: DELIMITERS,
+    ignoredTags: [
+      "script","style","textarea","pre","code","noscript",
+      "input","select",
+    ],
+    strict: "ignore"
+  });
 }
 
 /* ---------- helpers ---------- */
-
-/* Reconstruct fragmented LaTeX that has been split across HTML elements */
-function reconstructFragmentedMath(node) {
-  /*
-    We keep this routine conservative – it ONLY fixes obviously broken fragmentation
-    we have observed in the wild (inline <em>/<strong> or <br> inside LaTeX).
-    It now contains basic XSS guards and avoids writing back if <script> tags are present.
-  */
-  if (!node || node.nodeType !== 1) return;
-  
-  // Skip nodes that already contain rendered math to avoid conflicts
-  if (hasRenderedMath(node)) {
-    return;
-  }
-  
-  const htmlContent = node.innerHTML || '';
-  // Never touch nodes that already include <script> tags – avoid re-injection.
-  if (/\<script/i.test(htmlContent)) return;
-  
-  // Only process if we find LaTeX delimiters that might be fragmented
-  const hasLatexDelimiters = /\$\$|\\\[|\\\]|\$|\\\(|\\\)/.test(htmlContent);
-  if (!hasLatexDelimiters) return;
-  
-  try {
-    let fixedHTML = htmlContent;
-    
-    // Handle common fragmentation patterns more carefully
-    // Pattern 1: LaTeX split by <em> or <strong> tags
-    fixedHTML = fixedHTML.replace(
-      /\$([^$]*?)<(em|strong|i|b)>([^<]*?)<\/(em|strong|i|b)>([^$]*?)\$/g,
-      '$$$1$3$5$$'
-    );
-    
-    // Pattern 2: Block math split by formatting tags
-    fixedHTML = fixedHTML.replace(
-      /\$\$([^$]*?)<(em|strong|i|b)>([^<]*?)<\/(em|strong|i|b)>([^$]*?)\$\$/g,
-      '$$$$1$3$5$$$$'
-    );
-    
-    // Pattern 3: LaTeX split by line breaks or spans (but not rendered math)
-    fixedHTML = fixedHTML.replace(
-      /\$([^$]*?)<br\s*\/??>([^$]*?)\$/g,
-      '$$$1 $2$$'
-    );
-    
-    // Only apply changes if we actually modified something and it looks safe
-    if (fixedHTML !== htmlContent && !/<span[^>]*class="katex/.test(fixedHTML)) {
-      node.innerHTML = fixedHTML;
-    }
-  } catch (e) {
-    // Silently handle fragmented math reconstruction errors
-  }
-}
-
-/* Check if element contains already-rendered math to avoid conflicts */
-function hasRenderedMath(element) {
-  if (!element || element.nodeType !== 1) return false;
-
-  // Check for common math renderer classes and tags
-  const mathSelectors = [
-    '.katex', '.katex-mathml', '.katex-html',
-    '.MathJax', '.MathJax_Display', '.MathJax_Preview',
-    '.js-inline-math', '.js-display-math',
-    'math-renderer', 'mjx-container', 'math'
-  ];
-
-  // Check if this element or any child contains rendered math
-  return mathSelectors.some(selector => {
-    return element.matches && element.matches(selector) || 
-           element.querySelector && element.querySelector(selector);
-  });
-}
 
 /* Skip nodes inside <input>, <textarea>, or [contenteditable] ------- */
 function nodeIsEditable (n) {
