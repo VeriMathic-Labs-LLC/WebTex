@@ -12,17 +12,8 @@ const DELIMITERS = [
 ];
 
 /* -------------------------------------------------- */
-// Cross-browser safe inline-math detector.
-// Chrome supports the precise negative-look-behind pattern, but Firefox/Safari do not.
-// We attempt to compile the sharper pattern and fall back to a simpler one.
-const INLINE_MATH_REGEX = (() => {
-  try {
-    return new RegExp('(?<!\\\\)\\$(?!\\$)([^\\$\\r\\n]*?)\\$(?!\\$)', 'g');
-  } catch (_) {
-    // Fallback: "$...$" (later we'll filter out escaped dollars in the replacer)
-    return /\$([^\$\r\n]*?)\$/g;
-  }
-})();
+// Inline math detector with negative lookbehind (Chromium supports this)
+const INLINE_MATH_REGEX = /(?<!\\)\$(?!\$)([^\$\r\n]*?)\$(?!\$)/g;
 
 /* -------------------------------------------------- */
 let observer = null;
@@ -136,22 +127,59 @@ function preprocessMathText(node) {
     if (child.nodeType === 3) { // Text node
       let text = child.textContent;
       
+      // First, decode HTML entities
+      text = text.replace(/&amp;/g, '&')
+                 .replace(/&lt;/g, '<')
+                 .replace(/&gt;/g, '>')
+                 .replace(/&quot;/g, '"')
+                 .replace(/&#39;/g, "'");
+      
       // Handle block math: $$...$$ and \[...\]
       // Keep original spacing for display math
       text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
-        return inner !== undefined ? '$$' + inner + '$$' : m;
+        // Decode entities within math content as well
+        const decodedInner = inner.replace(/&amp;/g, '&')
+                                  .replace(/&lt;/g, '<')
+                                  .replace(/&gt;/g, '>')
+                                  .replace(/&quot;/g, '"')
+                                  .replace(/&#39;/g, "'");
+        return inner !== undefined ? '$$' + decodedInner + '$$' : m;
       });
       
       text = text.replace(/\\\[([\s\S]*?)\\\]/g, (m, inner) => {
-        return inner !== undefined ? '\\[' + inner + '\\]' : m;
+        const decodedInner = inner.replace(/&amp;/g, '&')
+                                  .replace(/&lt;/g, '<')
+                                  .replace(/&gt;/g, '>')
+                                  .replace(/&quot;/g, '"')
+                                  .replace(/&#39;/g, "'");
+        return inner !== undefined ? '\\[' + decodedInner + '\\]' : m;
+      });
+      
+      // Special handling for single $ with multi-line content (convert to display math)
+      // Check the full match to avoid already delimited content
+      text = text.replace(/\$\s*\\begin\{([^}]+)\}([\s\S]*?)\\end\{\1\}\s*\$/g, (m, env, content, offset, str) => {
+        // Check if this is already within $$ delimiters
+        if (offset > 0 && str[offset - 1] === '$') return m;
+        if (offset + m.length < str.length && str[offset + m.length] === '$') return m;
+        
+        const decodedContent = content.replace(/&amp;/g, '&')
+                                      .replace(/&lt;/g, '<')
+                                      .replace(/&gt;/g, '>')
+                                      .replace(/&quot;/g, '"')
+                                      .replace(/&#39;/g, "'");
+        return '$$\\begin{' + env + '}' + decodedContent + '\\end{' + env + '}$$';
       });
       
       // Handle inline math: $...$ and \(...\)
       // Simplified approach - less restrictive pattern matching
-      text = text.replace(INLINE_MATH_REGEX, (m, inner, offset, str) => {
-        // If we are on the fallback regex, skip matches where opening $ is escaped
-        if (offset > 0 && str[offset - 1] === '\\') return m;
+      text = text.replace(INLINE_MATH_REGEX, (m, inner) => {
         const trimmed = inner.trim();
+        
+        // Check if this contains environments that should be display math
+        if (/\\begin\{(align|equation|gather|multline)/.test(trimmed)) {
+          return '$$' + trimmed + '$$';
+        }
+        
         // Accept any non-empty content that contains typical math characters
         // This is more permissive and handles mixed content better
         if (trimmed && (
@@ -162,7 +190,13 @@ function preprocessMathText(node) {
           /[=+\-*/≤≥≠∞∂∇∆Ω∈∉⊂⊃∪∩∀∃∑∏∫√±]/.test(trimmed) || // Math symbols
           (/[a-zA-Z]/.test(trimmed) && /[0-9]/.test(trimmed)) // Variables with numbers
         )) {
-          return '$' + trimmed + '$';
+          // Decode entities within inline math too
+          const decodedTrimmed = trimmed.replace(/&amp;/g, '&')
+                                       .replace(/&lt;/g, '<')
+                                       .replace(/&gt;/g, '>')
+                                       .replace(/&quot;/g, '"')
+                                       .replace(/&#39;/g, "'");
+          return '$' + decodedTrimmed + '$';
         }
         return m;
       });
