@@ -4,12 +4,12 @@
 
 # WebTeX – Render LaTeX anywhere
 
-[![GitHub release](https://img.shields.io/github/v/release/Wais-A/WebTex?logo=github)](https://github.com/Wais-A/WebTex/releases)
+[![GitHub release](https://img.shields.io/github/v/release/VeriMathic-Labs-LLC/WebTex?logo=github)](https://github.com/VeriMathic-Labs-LLC/WebTex/releases)
 <!-- Uncomment after publishing →
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/__________.svg?logo=googlechrome)](https://chrome.google.com/webstore/detail/__________)
 -->
-[![License](https://img.shields.io/github/license/Wais-A/WebTex)](LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/Wais-A/WebTex/build.yml?label=build)](https://github.com/Wais-A/WebTex/actions)
+[![License](https://img.shields.io/github/license/VeriMathic-Labs-LLC/WebTex)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/VeriMathic-Labs-LLC/WebTex/build.yml?label=build)](https://github.com/VeriMathic-Labs-LLC/WebTex/actions)
 
 **WebTeX** is a lightweight Chrome/Edge/Brave extension that auto‑renders inline  
 and block LaTeX on pages that don’t support it natively—Reddit, GitHub issues,
@@ -50,7 +50,7 @@ Notion, Google Docs comments, NotebookLM, and more.
 ## 🛠 Development
 
 ```bash
-git clone https://github.com/Wais-A/WebTex.git
+git clone https://github.com/VeriMathic-Labs-LLC/WebTex.git
 cd WebTex
 npm install
 npm run build        # outputs production bundle to build/
