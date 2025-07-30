@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multilingual LaTeX Parsing Test</title>
+    <meta charset="UTF-8">
+    <script src="build/app.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .chinese { background-color: #e8f4fd; }
+        .japanese { background-color: #f0f8ff; }
+        .korean { background-color: #f5f5dc; }
+        .arabic { background-color: #fff8dc; }
+        .russian { background-color: #f0fff0; }
+        .problem { background-color: #ffe6e6; border-color: #ff9999; }
+    </style>
+</head>
+<body>
+    <h1>Multilingual LaTeX Parsing Test</h1>
+    
+    <div class="test-section chinese">
+        <h2>Chinese Text with LaTeX</h2>
+        
+        <h3>Test 1: Chinese text with inline math</h3>
+        <p>在机器学习中，我们使用 $f(x) = \sum_{i=1}^{n} w_i x_i$ 来表示线性函数。</p>
+        
+        <h3>Test 2: Chinese text with block math</h3>
+        <p>损失函数定义为：</p>
+        $$L = -\frac{1}{N} \sum_{i=1}^{N} y_i \log(\hat{y}_i)$$
+        <p>其中 $y_i$ 是真实标签。</p>
+        
+        <h3>Test 3: Chinese characters in math context (should NOT be parsed)</h3>
+        <p>这个公式 $x + 中文 + y$ 包含中文字符，不应该被解析为数学。</p>
+        
+        <h3>Test 4: Chinese text with Unicode math symbols</h3>
+        <p>使用 × 和 ÷ 符号：$a × b ÷ c$</p>
+        
+        <h3>Test 5: Chinese text with fullwidth characters</h3>
+        <p>使用全角字符：$f（x）$ 和 $g｛x｝$</p>
+    </div>
+    
+    <div class="test-section japanese">
+        <h2>Japanese Text with LaTeX</h2>
+        
+        <h3>Test 6: Japanese text with math</h3>
+        <p>機械学習では、$E = mc^2$ のような公式を使用します。</p>
+        
+        <h3>Test 7: Japanese with katakana in math context</h3>
+        <p>この式 $x + カタカナ + y$ はカタカナを含むので、数学として解析されるべきではありません。</p>
+    </div>
+    
+    <div class="test-section korean">
+        <h2>Korean Text with LaTeX</h2>
+        
+        <h3>Test 8: Korean text with math</h3>
+        <p>딥러닝에서 $P(A|B) = \frac{P(A \cap B)}{P(B)}$ 공식을 사용합니다.</p>
+        
+        <h3>Test 9: Korean with hangul in math context</h3>
+        <p>이 공식 $x + 한글 + y$ 은 한글을 포함하므로 수학으로 파싱되지 않아야 합니다.</p>
+    </div>
+    
+    <div class="test-section arabic">
+        <h2>Arabic Text with LaTeX</h2>
+        
+        <h3>Test 10: Arabic text with math</h3>
+        <p>في الرياضيات، نستخدم $a^2 + b^2 = c^2$ لنظرية فيثاغورس.</p>
+        
+        <h3>Test 11: Arabic with Arabic text in math context</h3>
+        <p>هذه المعادلة $x + عربي + y$ تحتوي على نص عربي، لذا لا يجب تحليلها كرياضيات.</p>
+    </div>
+    
+    <div class="test-section russian">
+        <h2>Russian Text with LaTeX</h2>
+        
+        <h3>Test 12: Russian text with math</h3>
+        <p>В математике мы используем $\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$.</p>
+        
+        <h3>Test 13: Russian with Cyrillic in math context</h3>
+        <p>Это уравнение $x + русский + y$ содержит кириллицу, поэтому не должно анализироваться как математика.</p>
+    </div>
+    
+    <div class="test-section problem">
+        <h2>Potential Problem Cases</h2>
+        
+        <h3>Test 14: Mixed language with math symbols</h3>
+        <p>中文 $x + y = z$ English 日本語 $a \times b$ 한국어</p>
+        
+        <h3>Test 15: Currency symbols that might be confused with math</h3>
+        <p>价格是 $100 美元，数学公式是 $f(x) = x^2$</p>
+        
+        <h3>Test 16: Text with many special characters</h3>
+        <p>特殊字符：$@#$%^&*()_+{}|:"<>?[]\;',./`~$ 数学：$x + y$</p>
+        
+        <h3>Test 17: Right-to-left text with math</h3>
+        <p>النص العربي $x + y = z$ مع الرياضيات</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Results</h2>
+        <ul>
+            <li>Tests 1, 2, 6, 8, 10, 12: Should render math correctly</li>
+            <li>Tests 3, 7, 9, 11, 13: Should NOT parse as math (contains non-math text)</li>
+            <li>Tests 4, 5: Should normalize Unicode characters and render</li>
+            <li>Tests 14-17: Should handle mixed content appropriately</li>
+        </ul>
+    </div>
+    
+    <script>
+        setTimeout(() => {
+            console.log('Multilingual LaTeX parsing test completed');
+            const mathElements = document.querySelectorAll('.katex, .katex-display');
+            console.log(`Found ${mathElements.length} rendered math elements`);
+            
+            // Check for potential issues
+            const textNodes = document.querySelectorAll('p');
+            textNodes.forEach(node => {
+                const text = node.textContent;
+                if (text.includes('$') && !node.querySelector('.katex')) {
+                    console.warn('Potential issue: Dollar signs found but no math rendered:', text);
+                }
+            });
+        }, 1000);
+    </script>
+</body>
+</html>
