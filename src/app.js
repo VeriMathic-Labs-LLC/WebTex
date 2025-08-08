@@ -10,6 +10,26 @@ async function injectCSS() {
 	if (injectedStylesheets.length > 0) return; // Already injected
 
 	try {
+		// Preload key KaTeX fonts to minimize font swap/flash on mobile
+		try {
+			const fontPreloads = [
+				"katex/fonts/KaTeX_Main-Regular.woff2",
+				"katex/fonts/KaTeX_Math-Italic.woff2",
+				"katex/fonts/KaTeX_Size1-Regular.woff2",
+				"katex/fonts/KaTeX_AMS-Regular.woff2",
+			];
+			for (const rel of fontPreloads) {
+				const link = document.createElement("link");
+				link.rel = "preload";
+				link.as = "font";
+				link.type = "font/woff2";
+				link.href = chrome.runtime.getURL(rel);
+				link.crossOrigin = "anonymous";
+				document.head.appendChild(link);
+				injectedStylesheets.push(link);
+			}
+		} catch {}
+
 		// Inject app.css
 		const appStyle = document.createElement("style");
 		appStyle.id = "webtex-app-styles";
@@ -116,7 +136,14 @@ async function injectCSS() {
 .webtex-katex-rendered,
 .webtex-custom-rendered {
 	color: inherit !important;
-}`;
+}
+
+/* Prevent font synthesis to reduce jarring changes during font load */
+.katex, .katex * { font-synthesis: none; }
+
+/* Mobile: keep math size consistent to reduce perceived swap */
+@media (max-width: 480px) { .katex { font-size: 1em; } }
+`;
 		document.head.appendChild(appStyle);
 		injectedStylesheets.push(appStyle);
 
@@ -135,123 +162,12 @@ async function injectCSS() {
 		const katexStyle = document.createElement("style");
 		katexStyle.id = "webtex-katex-styles";
 		katexStyle.textContent =
-			fixedKatexCss +
-			`
-/* WebTeX Font Path Fixes */
-@font-face {
-	font-family: 'KaTeX_Main';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Main-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Main-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Main-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Main';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Main-Bold.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Main-Bold.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Main-Bold.ttf")}') format('truetype');
-	font-weight: bold;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Math';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Math-Italic.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Math-Italic.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Math-Italic.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: italic;
-}
-@font-face {
-	font-family: 'KaTeX_AMS';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_AMS-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_AMS-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_AMS-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Caligraphic';
-	src: url('${chrome.runtime.getURL(
-		"katex/fonts/KaTeX_Caligraphic-Regular.woff2",
-	)}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Caligraphic-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL(
-					"katex/fonts/KaTeX_Caligraphic-Regular.ttf",
-				)}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Fraktur';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Fraktur-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Fraktur-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Fraktur-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_SansSerif';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_SansSerif-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_SansSerif-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL(
-					"katex/fonts/KaTeX_SansSerif-Regular.ttf",
-				)}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Script';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Script-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Script-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Script-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Typewriter';
-	src: url('${chrome.runtime.getURL(
-		"katex/fonts/KaTeX_Typewriter-Regular.woff2",
-	)}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Typewriter-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL(
-					"katex/fonts/KaTeX_Typewriter-Regular.ttf",
-				)}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Size1';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size1-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size1-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size1-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Size2';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size2-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size2-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size2-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Size3';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size3-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size3-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size3-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-@font-face {
-	font-family: 'KaTeX_Size4';
-	src: url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size4-Regular.woff2")}') format('woff2'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size4-Regular.woff")}') format('woff'),
-			 url('${chrome.runtime.getURL("katex/fonts/KaTeX_Size4-Regular.ttf")}') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}`;
+			// Ensure webfonts use 'swap' to avoid FOIT on iOS/Safari
+			fixedKatexCss.replace(/@font-face\s*\{[\s\S]*?\}/g, (block) => {
+				return block.includes("font-display")
+					? block
+					: block.replace(/}\s*$/, "font-display: swap;}");
+			});
 		document.head.appendChild(katexStyle);
 		injectedStylesheets.push(katexStyle);
 	} catch (_error) {
