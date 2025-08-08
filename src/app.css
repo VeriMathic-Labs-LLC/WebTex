@@ -1,66 +1,133 @@
-/* normalize css starts here */
-*,
-*::before,
-*::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-/* normalize css ends here */
+/* WebTeX Extension Styles - Scoped to extension elements only */
 
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-image: linear-gradient(to right, #EC6EAD, #3494E6);
-    -webkit-font-smoothing: antialiased;
-    color: #fff;
+/* WebTeX Enhanced Styling with proper color inheritance */
+.webtex-math-container {
+	display: inline;
+	color: inherit !important;
 }
 
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    padding: 20px;
-    text-shadow: 0 0 25px rgba(0, 0, 0, 0.3);
+.webtex-math {
+	display: inline-block;
+	color: inherit !important;
 }
 
-.day {
-    font-size: 14px;
-    font-weight: 600;
+.webtex-display {
+	display: block;
+	text-align: center;
+	margin: 1em 0;
+	color: inherit !important;
 }
 
-.clock {
-    font-size: 80px;
-    font-weight: 600;
+.webtex-inline-math {
+	display: inline;
+	vertical-align: middle;
+	color: inherit !important;
 }
 
-.title {
-    margin-top: 5px;
-    font-size: 26px;
-    font-weight: 600;
+.webtex-display-math {
+	display: block;
+	text-align: center;
+	margin: 1em 0;
+	color: inherit !important;
 }
 
-.subtitle {
-    font-size: 14px;
-    margin-top: 10px;
+.webtex-processed {
+	display: inline;
+	color: inherit !important;
 }
 
-code {
-    font-size: 12px;
-    font-family: inherit;
-    background-color: rgba(255, 255, 255, .1);
-    padding: 2px 4px;
-    border-radius: 2px;
+/* KaTeX styling that adapts to website color scheme */
+.katex {
+	color: inherit !important;
+	font-size: 1.1em;
 }
 
-.divider {
-    margin: 20px auto;
-    width: 50px;
-    border: .5px dashed #fff;
-    opacity: .2;
+.katex-display {
+	color: inherit !important;
+	margin: 1em 0;
 }
-@media (prefers-color-scheme: dark){
-  .katex{color:#eee!important}
+
+.katex .katex-html {
+	color: inherit !important;
+}
+
+.katex .katex-mathml {
+	color: inherit !important;
+}
+
+/* Ensure all KaTeX elements inherit color */
+.katex,
+.katex *,
+.katex .katex-html *,
+.katex .katex-mathml * {
+	color: inherit !important;
+}
+
+/* Custom fallback styling */
+.webtex-custom-fallback {
+	font-family: "Computer Modern", "Times New Roman", serif, sans-serif;
+	font-size: 1.1em;
+	color: inherit !important;
+	background: rgba(255, 235, 238, 0.3);
+	padding: 2px 4px;
+	border-radius: 3px;
+	border: 1px solid rgba(239, 154, 154, 0.5);
+	box-sizing: border-box;
+}
+
+/* Error fallback styling */
+.webtex-error-fallback {
+	font-family: "Courier New", "Monaco", monospace, sans-serif;
+	font-size: 0.9em;
+	color: inherit !important;
+	background: rgba(255, 235, 238, 0.3);
+	padding: 2px 4px;
+	border-radius: 3px;
+	border: 1px solid rgba(239, 154, 154, 0.5);
+	margin: 0 2px;
+	box-sizing: border-box;
+}
+
+/* Ensure all rendered elements inherit color */
+.webtex-katex-rendered,
+.webtex-custom-rendered {
+	color: inherit !important;
+}
+
+/* Additional KaTeX color inheritance fixes */
+.katex .katex-html .base,
+.katex .katex-html .strut,
+.katex .katex-html .text,
+.katex .katex-html .mathnormal,
+.katex .katex-html .mathit,
+.katex .katex-html .mathrm,
+.katex .katex-html .mathbf,
+.katex .katex-html .boldsymbol,
+.katex .katex-html .amsrm,
+.katex .katex-html .mathbb,
+.katex .katex-html .mathcal,
+.katex .katex-html .mathfrak,
+.katex .katex-html .mathscr,
+.katex .katex-html .mathsf,
+.katex .katex-html .mathtt {
+	color: inherit !important;
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+	.katex {
+		color: inherit !important;
+	}
+
+	.webtex-custom-fallback,
+	.webtex-error-fallback {
+		background: rgba(255, 235, 238, 0.1);
+		border-color: rgba(239, 154, 154, 0.3);
+	}
+}
+
+/* Force color inheritance for all math elements */
+.katex-display,
+.katex-display * {
+	color: inherit !important;
 }
