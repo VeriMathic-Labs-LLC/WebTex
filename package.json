@@ -1,6 +1,6 @@
 {
 	"name": "webtex",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"description": "Renders Inline & Block LaTeX On Sites That Don't Support It with KaTeX and intelligent fallback.",
 	"private": true,
 	"scripts": {
