@@ -459,7 +459,7 @@ function fixIncompleteCommands(str) {
 
 	// Also handle variants without braces around subscript, e.g. \int_0^
 	// Pattern allows either a LaTeX command (e.g., \\alpha) or bare token
-	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\\s{}]+)";
+	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\s{}]+)";
 	const reSubNoBraceEnd = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^\\s*$`, "g");
 	const reSubNoBraceToken = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^(?!\\s*\\{)`, "g");
 	str = str.replace(reSubNoBraceEnd, (_m) =>
@@ -496,6 +496,20 @@ function fixIncompleteCommands(str) {
 	return str;
 }
 // --------------------------------------------------
+
+// Fix nested \text commands in nuclear notation like: \text{^{A}\text{N}} -> {}^{A}\text{N}
+// This handles malformed input where superscript A and element N are both wrapped in \text{}
+// Multi-line, commented regex for maintainability
+const MALFORMED_NESTED_TEXT_PATTERN = new RegExp(
+	[
+		// Match \text{^{A}\text{N}}
+		String.raw`\\text\{`, // Match literal \text{
+		String.raw`\\\^\{([^}]+)\}`, // Match ^{A} (superscript), capture A
+		String.raw`\\text\{([^}]*)\}`, // Match \text{N}, capture N
+		String.raw`\}`, // Match closing }
+	].join(""),
+	"g",
+);
 
 class CustomLatexParser {
 	constructor() {
@@ -914,19 +928,6 @@ class CustomLatexParser {
 		// Pattern: \text{^{A}N} -> {}^{A}\text{N}
 		str = str.replace(/\\text\{\^\{([^}]+)\}([^}]*)\}/g, "{}^{$1}\\text{$2}");
 
-		// Fix nested \text commands in nuclear notation like: \text{^{A}\text{N}} -> {}^{A}\text{N}
-		// This handles malformed input where superscript A and element N are both wrapped in \text{}
-		// Multi-line, commented regex for maintainability
-		const MALFORMED_NESTED_TEXT_PATTERN = new RegExp(
-			[
-				// Match \text{^{A}\text{N}}
-				String.raw`\\text\{`, // Match literal \text{
-				String.raw`\\\^\{([^}]+)\}`, // Match ^{A} (superscript), capture A
-				String.raw`\\text\{([^}]*)\}`, // Match \text{N}, capture N
-				String.raw`\}`, // Match closing }
-			].join(""),
-			"g",
-		);
 		str = str.replace(MALFORMED_NESTED_TEXT_PATTERN, "{}^{$1}\\text{$2}");
 
 		// Handle nested form without escaped caret: \text{^{A}\text{N}} -> {}^{A}\text{N}
