@@ -459,7 +459,7 @@ function fixIncompleteCommands(str) {
 
 	// Also handle variants without braces around subscript, e.g. \int_0^
 	// Pattern allows either a LaTeX command (e.g., \\alpha) or bare token
-	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\\s{}]+)";
+	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\s{}]+)";
 	const reSubNoBraceEnd = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^\\s*$`, "g");
 	const reSubNoBraceToken = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^(?!\\s*\\{)`, "g");
 	str = str.replace(reSubNoBraceEnd, (_m) =>
@@ -1230,6 +1230,30 @@ async function renderMathExpression(tex, displayMode = false, element = null) {
 
 /* -------------------------------------------------- */
 // Enhanced math detection and processing
+
+// Enhanced regex patterns for math detection
+const patterns = [
+	// Display math: $$...$$ and \[...\]
+	{ pattern: /\$\$([\s\S]*?)\$\$/g, display: true },
+	{ pattern: /\\\[([\s\S]*?)\\\]/g, display: true },
+	// Inline math: $...$ and \(...\)
+	// The following regex matches inline math expressions delimited by single dollar signs ($...$),
+	// while allowing for escaped dollar signs (\$) inside the math. It captures the content between
+	// the dollar signs, ensuring that a single $ does not match across multiple math expressions.
+	// Breakdown:
+	//   \$           - Match a literal dollar sign (start delimiter)
+	//   (            - Start capturing group for the math content
+	//     (?:        - Non-capturing group for content inside math
+	//       [^\$]    - Any character except a dollar sign
+	//       |        - OR
+	//       \\$     - An escaped dollar sign (i.e., \$)
+	//     )+?        - Repeat one or more times, non-greedy
+	//   )            - End capturing group
+	//   \$           - Match a literal dollar sign (end delimiter)
+	{ pattern: /\$((?:[^$]|\\\$)+?)\$/g, display: false },
+	{ pattern: /\\\(([\s\S]*?)\\\)/g, display: false },
+];
+
 function findMathExpressions(root) {
 	const mathExpressions = [];
 	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -1277,30 +1301,8 @@ function findMathExpressions(root) {
 	while ((node = walker.nextNode())) {
 		const text = node.textContent;
 
-		// Enhanced regex patterns for math detection
-		const patterns = [
-			// Display math: $$...$$ and \[...\]
-			{ pattern: /\$\$([\s\S]*?)\$\$/g, display: true },
-			{ pattern: /\\\[([\s\S]*?)\\\]/g, display: true },
-			// Inline math: $...$ and \(...\)
-			// The following regex matches inline math expressions delimited by single dollar signs ($...$),
-			// while allowing for escaped dollar signs (\$) inside the math. It captures the content between
-			// the dollar signs, ensuring that a single $ does not match across multiple math expressions.
-			// Breakdown:
-			//   \$           - Match a literal dollar sign (start delimiter)
-			//   (            - Start capturing group for the math content
-			//     (?:        - Non-capturing group for content inside math
-			//       [^\$]    - Any character except a dollar sign
-			//       |        - OR
-			//       \\$     - An escaped dollar sign (i.e., \$)
-			//     )+?        - Repeat one or more times, non-greedy
-			//   )            - End capturing group
-			//   \$           - Match a literal dollar sign (end delimiter)
-			{ pattern: /\$((?:[^$]|\\\$)+?)\$/g, display: false },
-			{ pattern: /\\\(([\s\S]*?)\\\)/g, display: false },
-		];
-
 		patterns.forEach(({ pattern, display }) => {
+			pattern.lastIndex = 0;
 			let match = pattern.exec(text);
 			while (match !== null) {
 				const tex = decodeHTMLEntities(match[1].trim());
