@@ -5,6 +5,14 @@ import { domainMatches } from "./domain-utils.js";
 // Track which tabs have content scripts injected
 const injectedTabs = new Set();
 
+// Cache for allowed domains
+let allowedDomainsCache = [];
+
+// Initialize cache
+chrome.storage.local.get("allowedDomains").then(({ allowedDomains = [] }) => {
+	allowedDomainsCache = allowedDomains;
+});
+
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
 	// Only initialize on fresh install, not on updates
@@ -27,7 +35,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 		if (changeInfo.status !== "complete" || !tab.url) return;
 
 		const url = new URL(tab.url);
-		const { allowedDomains = [] } = await chrome.storage.local.get("allowedDomains");
+		// Use cached allowed domains instead of querying storage every time
+		const allowedDomains = allowedDomainsCache;
 
 		// Check if this domain should have WebTeX enabled
 		const shouldInject =
@@ -77,6 +86,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
 	if (namespace === "local" && changes.allowedDomains) {
 		const newAllowedDomains = changes.allowedDomains.newValue || [];
+		allowedDomainsCache = newAllowedDomains;
 
 		// Check all current tabs and update injection status
 		const tabs = await chrome.tabs.query({});

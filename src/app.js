@@ -459,7 +459,7 @@ function fixIncompleteCommands(str) {
 
 	// Also handle variants without braces around subscript, e.g. \int_0^
 	// Pattern allows either a LaTeX command (e.g., \\alpha) or bare token
-	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\\s{}]+)";
+	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\s{}]+)";
 	const reSubNoBraceEnd = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^\\s*$`, "g");
 	const reSubNoBraceToken = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^(?!\\s*\\{)`, "g");
 	str = str.replace(reSubNoBraceEnd, (_m) =>
