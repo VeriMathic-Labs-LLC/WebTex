@@ -459,7 +459,7 @@ function fixIncompleteCommands(str) {
 
 	// Also handle variants without braces around subscript, e.g. \int_0^
 	// Pattern allows either a LaTeX command (e.g., \\alpha) or bare token
-	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\\s{}]+)";
+	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\s{}]+)";
 	const reSubNoBraceEnd = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^\\s*$`, "g");
 	const reSubNoBraceToken = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^(?!\\s*\\{)`, "g");
 	str = str.replace(reSubNoBraceEnd, (_m) =>
@@ -1423,129 +1423,125 @@ function preprocessMathText(node) {
 	});
 }
 
+// Common Unicode fractions
+const unicodeFractions = {
+	"½": "\\frac{1}{2}",
+	"⅓": "\\frac{1}{3}",
+	"⅔": "\\frac{2}{3}",
+	"¼": "\\frac{1}{4}",
+	"¾": "\\frac{3}{4}",
+	"⅕": "\\frac{1}{5}",
+	"⅖": "\\frac{2}{5}",
+	"⅗": "\\frac{3}{5}",
+	"⅘": "\\frac{4}{5}",
+	"⅙": "\\frac{1}{6}",
+	"⅚": "\\frac{5}{6}",
+	"⅐": "\\frac{1}{7}",
+	"⅛": "\\frac{1}{8}",
+	"⅜": "\\frac{3}{8}",
+	"⅝": "\\frac{5}{8}",
+	"⅞": "\\frac{7}{8}",
+	"⅑": "\\frac{1}{9}",
+	"⅒": "\\frac{1}{10}",
+};
+
+// Common Unicode symbols and their LaTeX equivalents
+const unicodeSymbols = {
+	"→": "\\rightarrow",
+	"←": "\\leftarrow",
+	"↔": "\\leftrightarrow",
+	"⇒": "\\Rightarrow",
+	"⇐": "\\Leftarrow",
+	"⇔": "\\Leftrightarrow",
+	"∈": "\\in",
+	"∉": "\\notin",
+	"⊆": "\\subseteq",
+	"⊂": "\\subset",
+	"⊇": "\\supseteq",
+	"⊃": "\\supset",
+	"∩": "\\cap",
+	"∪": "\\cup",
+	"∅": "\\emptyset",
+	"∞": "\\infty",
+	"±": "\\pm",
+	"∓": "\\mp",
+	"×": "\\times",
+	"÷": "\\div",
+	"≤": "\\leq",
+	"≥": "\\geq",
+	"≠": "\\neq",
+	"≈": "\\approx",
+	"≡": "\\equiv",
+	"≅": "\\cong",
+	"∝": "\\propto",
+	"∑": "\\sum",
+	"∏": "\\prod",
+	"∫": "\\int",
+	"∬": "\\iint",
+	"∭": "\\iiint",
+	"∮": "\\oint",
+	"∇": "\\nabla",
+	"∂": "\\partial",
+	"√": "\\sqrt",
+	"∛": "\\sqrt[3]",
+	"∜": "\\sqrt[4]",
+	α: "\\alpha",
+	β: "\\beta",
+	γ: "\\gamma",
+	δ: "\\delta",
+	ε: "\\epsilon",
+	ζ: "\\zeta",
+	η: "\\eta",
+	θ: "\\theta",
+	ι: "\\iota",
+	κ: "\\kappa",
+	λ: "\\lambda",
+	μ: "\\mu",
+	ν: "\\nu",
+	ξ: "\\xi",
+	π: "\\pi",
+	ρ: "\\rho",
+	σ: "\\sigma",
+	τ: "\\tau",
+	υ: "\\upsilon",
+	φ: "\\phi",
+	χ: "\\chi",
+	ψ: "\\psi",
+	ω: "\\omega",
+	Α: "\\Alpha",
+	Β: "\\Beta",
+	Γ: "\\Gamma",
+	Δ: "\\Delta",
+	Ε: "\\Epsilon",
+	Ζ: "\\Zeta",
+	Η: "\\Eta",
+	Θ: "\\Theta",
+	Ι: "\\Iota",
+	Κ: "\\Kappa",
+	Λ: "\\Lambda",
+	Μ: "\\Mu",
+	Ν: "\\Nu",
+	Ξ: "\\Xi",
+	Π: "\\Pi",
+	Ρ: "\\Rho",
+	Σ: "\\Sigma",
+	Τ: "\\Tau",
+	Υ: "\\Upsilon",
+	Φ: "\\Phi",
+	Χ: "\\Chi",
+	Ψ: "\\Psi",
+	Ω: "\\Omega",
+};
+
+const unicodeReplacements = { ...unicodeFractions, ...unicodeSymbols };
+const unicodeReplacementPattern = new RegExp(Object.keys(unicodeReplacements).join("|"), "g");
+
 // Function to handle Unicode characters in math expressions
 function handleUnicodeInMath(tex) {
-	// Common Unicode fractions
-	const unicodeFractions = {
-		"½": "\\frac{1}{2}",
-		"⅓": "\\frac{1}{3}",
-		"⅔": "\\frac{2}{3}",
-		"¼": "\\frac{1}{4}",
-		"¾": "\\frac{3}{4}",
-		"⅕": "\\frac{1}{5}",
-		"⅖": "\\frac{2}{5}",
-		"⅗": "\\frac{3}{5}",
-		"⅘": "\\frac{4}{5}",
-		"⅙": "\\frac{1}{6}",
-		"⅚": "\\frac{5}{6}",
-		"⅐": "\\frac{1}{7}",
-		"⅛": "\\frac{1}{8}",
-		"⅜": "\\frac{3}{8}",
-		"⅝": "\\frac{5}{8}",
-		"⅞": "\\frac{7}{8}",
-		"⅑": "\\frac{1}{9}",
-		"⅒": "\\frac{1}{10}",
-	};
-
-	// Common Unicode symbols and their LaTeX equivalents
-	const unicodeSymbols = {
-		"→": "\\rightarrow",
-		"←": "\\leftarrow",
-		"↔": "\\leftrightarrow",
-		"⇒": "\\Rightarrow",
-		"⇐": "\\Leftarrow",
-		"⇔": "\\Leftrightarrow",
-		"∈": "\\in",
-		"∉": "\\notin",
-		"⊆": "\\subseteq",
-		"⊂": "\\subset",
-		"⊇": "\\supseteq",
-		"⊃": "\\supset",
-		"∩": "\\cap",
-		"∪": "\\cup",
-		"∅": "\\emptyset",
-		"∞": "\\infty",
-		"±": "\\pm",
-		"∓": "\\mp",
-		"×": "\\times",
-		"÷": "\\div",
-		"≤": "\\leq",
-		"≥": "\\geq",
-		"≠": "\\neq",
-		"≈": "\\approx",
-		"≡": "\\equiv",
-		"≅": "\\cong",
-		"∝": "\\propto",
-		"∑": "\\sum",
-		"∏": "\\prod",
-		"∫": "\\int",
-		"∬": "\\iint",
-		"∭": "\\iiint",
-		"∮": "\\oint",
-		"∇": "\\nabla",
-		"∂": "\\partial",
-		"√": "\\sqrt",
-		"∛": "\\sqrt[3]",
-		"∜": "\\sqrt[4]",
-		α: "\\alpha",
-		β: "\\beta",
-		γ: "\\gamma",
-		δ: "\\delta",
-		ε: "\\epsilon",
-		ζ: "\\zeta",
-		η: "\\eta",
-		θ: "\\theta",
-		ι: "\\iota",
-		κ: "\\kappa",
-		λ: "\\lambda",
-		μ: "\\mu",
-		ν: "\\nu",
-		ξ: "\\xi",
-		π: "\\pi",
-		ρ: "\\rho",
-		σ: "\\sigma",
-		τ: "\\tau",
-		υ: "\\upsilon",
-		φ: "\\phi",
-		χ: "\\chi",
-		ψ: "\\psi",
-		ω: "\\omega",
-		Α: "\\Alpha",
-		Β: "\\Beta",
-		Γ: "\\Gamma",
-		Δ: "\\Delta",
-		Ε: "\\Epsilon",
-		Ζ: "\\Zeta",
-		Η: "\\Eta",
-		Θ: "\\Theta",
-		Ι: "\\Iota",
-		Κ: "\\Kappa",
-		Λ: "\\Lambda",
-		Μ: "\\Mu",
-		Ν: "\\Nu",
-		Ξ: "\\Xi",
-		Π: "\\Pi",
-		Ρ: "\\Rho",
-		Σ: "\\Sigma",
-		Τ: "\\Tau",
-		Υ: "\\Upsilon",
-		Φ: "\\Phi",
-		Χ: "\\Chi",
-		Ψ: "\\Psi",
-		Ω: "\\Omega",
-	};
-
 	let processed = tex;
 
-	// Replace Unicode fractions with LaTeX fractions
-	Object.entries(unicodeFractions).forEach(([unicode, latex]) => {
-		processed = processed.replace(new RegExp(unicode, "g"), latex);
-	});
-
-	// Replace Unicode symbols with LaTeX equivalents
-	Object.entries(unicodeSymbols).forEach(([unicode, latex]) => {
-		processed = processed.replace(new RegExp(unicode, "g"), latex);
-	});
+	// Replace Unicode fractions and symbols with LaTeX equivalents using a single pass
+	processed = processed.replace(unicodeReplacementPattern, (match) => unicodeReplacements[match]);
 
 	// Handle other Unicode characters by wrapping them in \text{}
 	// This regex matches Unicode characters that are not already in \text{} or other commands
