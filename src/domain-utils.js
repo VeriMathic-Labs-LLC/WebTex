@@ -28,6 +28,54 @@ const COMMON_SUBDOMAINS = [
 	"alpha",
 ];
 
+// Common country-specific TLDs that should keep the second-to-last part
+const COUNTRY_TLDS = new Set([
+	"uk",
+	"au",
+	"nz",
+	"za",
+	"br",
+	"in",
+	"jp",
+	"kr",
+	"cn",
+	"ru",
+	"de",
+	"fr",
+	"it",
+	"es",
+	"nl",
+	"se",
+	"no",
+	"dk",
+	"fi",
+	"pl",
+	"cz",
+	"hu",
+	"ro",
+	"bg",
+	"hr",
+	"si",
+	"sk",
+	"ee",
+	"lv",
+	"lt",
+	"mt",
+	"cy",
+	"gr",
+	"pt",
+	"ie",
+	"be",
+	"at",
+	"ch",
+	"lu",
+	"li",
+	"mc",
+	"ad",
+	"sm",
+	"va",
+]);
+
 /**
  * Normalize a domain by stripping common subdomains
  * @param {string} hostname - The hostname to normalize
@@ -69,55 +117,7 @@ export function normalizeDomain(hostname) {
 	if (parts.length > 2) {
 		const tld = parts[parts.length - 1];
 
-		// Common country-specific TLDs that should keep the second-to-last part
-		const countryTlds = [
-			"uk",
-			"au",
-			"nz",
-			"za",
-			"br",
-			"in",
-			"jp",
-			"kr",
-			"cn",
-			"ru",
-			"de",
-			"fr",
-			"it",
-			"es",
-			"nl",
-			"se",
-			"no",
-			"dk",
-			"fi",
-			"pl",
-			"cz",
-			"hu",
-			"ro",
-			"bg",
-			"hr",
-			"si",
-			"sk",
-			"ee",
-			"lv",
-			"lt",
-			"mt",
-			"cy",
-			"gr",
-			"pt",
-			"ie",
-			"be",
-			"at",
-			"ch",
-			"lu",
-			"li",
-			"mc",
-			"ad",
-			"sm",
-			"va",
-		];
-
-		if (countryTlds.includes(tld)) {
+		if (COUNTRY_TLDS.has(tld)) {
 			// For country domains, keep the last 3 parts (e.g., example.co.uk)
 			return parts.slice(-3).join(".");
 		}
