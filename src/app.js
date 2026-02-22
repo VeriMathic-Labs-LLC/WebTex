@@ -195,11 +195,12 @@ function removeCSS() {
 
 /* -------------------------------------------------- */
 // Reusable entity decoder for performance
+const _decoderDiv = document.createElement("div");
+
 function decodeHTMLEntities(text) {
 	// Decode using safe div.textContent
-	const div = document.createElement("div");
-	div.innerHTML = text;
-	return div.textContent;
+	_decoderDiv.innerHTML = text;
+	return _decoderDiv.textContent;
 }
 /* -------------------------------------------------- */
 // Logging system for debugging and error tracking
