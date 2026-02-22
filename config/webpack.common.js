@@ -1,7 +1,7 @@
 const _path = require("node:path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const SizePlugin = require("size-plugin");
+
 const TerserPlugin = require("terser-webpack-plugin");
 const PATHS = require("./paths");
 
@@ -47,7 +47,6 @@ module.exports = {
 	},
 
 	plugins: [
-		new SizePlugin(),
 
 		// copy static assets without clobbering build outputs
 		new CopyWebpackPlugin({
