@@ -180,6 +180,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Changelog
 
+### v2.1.1
+- **Fixed build error**: Removed `size-plugin` dependency that broke after `npm audit fix --force` downgraded it to an incompatible version
+- **Fixed duplicate declaration**: Removed duplicate `COUNTRY_TLDS` constant in `domain-utils.js` that caused a webpack parse error
+- **Resolved all npm audit vulnerabilities**: Eliminated the `minimatch`/`glob` vulnerability chain (0 vulnerabilities)
+
 ### v2.1.0
 - **Hybrid Renderer System**: KaTeX as primary renderer with custom renderer fallback
 - **Enhanced Compatibility**: Automatic fallback when KaTeX encounters issues

@@ -5,6 +5,14 @@ import { domainMatches } from "./domain-utils.js";
 // Track which tabs have content scripts injected
 const injectedTabs = new Set();
 
+// Cache for allowed domains
+let allowedDomainsCache = [];
+
+// Initialize cache
+chrome.storage.local.get("allowedDomains").then(({ allowedDomains = [] }) => {
+	allowedDomainsCache = allowedDomains;
+});
+
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
 	// Only initialize on fresh install, not on updates
@@ -27,7 +35,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 		if (changeInfo.status !== "complete" || !tab.url) return;
 
 		const url = new URL(tab.url);
-		const { allowedDomains = [] } = await chrome.storage.local.get("allowedDomains");
+		// Use cached allowed domains instead of querying storage every time
+		const allowedDomains = allowedDomainsCache;
 
 		// Check if this domain should have WebTeX enabled
 		const shouldInject =
@@ -77,40 +86,43 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
 	if (namespace === "local" && changes.allowedDomains) {
 		const newAllowedDomains = changes.allowedDomains.newValue || [];
+		allowedDomainsCache = newAllowedDomains;
 
 		// Check all current tabs and update injection status
 		const tabs = await chrome.tabs.query({});
 
-		for (const tab of tabs) {
-			if (!tab.url) continue;
+		await Promise.all(
+			tabs.map(async (tab) => {
+				if (!tab.url) return;
 
-			try {
-				const url = new URL(tab.url);
-				const shouldInject =
-					url.protocol === "file:" ||
-					newAllowedDomains.some((domain) => domainMatches(url.hostname, domain)) ||
-					url.pathname.includes("test-comprehensive.html") ||
-					url.pathname.includes("test-simple.html");
+				try {
+					const url = new URL(tab.url);
+					const shouldInject =
+						url.protocol === "file:" ||
+						newAllowedDomains.some((domain) => domainMatches(url.hostname, domain)) ||
+						url.pathname.includes("test-comprehensive.html") ||
+						url.pathname.includes("test-simple.html");
 
-				if (shouldInject && !injectedTabs.has(tab.id)) {
-					await chrome.scripting.executeScript({
-						target: { tabId: tab.id },
-						files: ["app.js"],
-					});
-					injectedTabs.add(tab.id);
-					console.log(`WebTeX: Injected content script on ${url.hostname} after domain update`);
-				} else if (!shouldInject && injectedTabs.has(tab.id)) {
-					try {
-						await chrome.tabs.sendMessage(tab.id, { action: "disable-website" });
-					} catch (_e) {
-						// Tab might not be accessible
+					if (shouldInject && !injectedTabs.has(tab.id)) {
+						await chrome.scripting.executeScript({
+							target: { tabId: tab.id },
+							files: ["app.js"],
+						});
+						injectedTabs.add(tab.id);
+						console.log(`WebTeX: Injected content script on ${url.hostname} after domain update`);
+					} else if (!shouldInject && injectedTabs.has(tab.id)) {
+						try {
+							await chrome.tabs.sendMessage(tab.id, { action: "disable-website" });
+						} catch (_e) {
+							// Tab might not be accessible
+						}
+						injectedTabs.delete(tab.id);
+						console.log(`WebTeX: Disabled on ${url.hostname} after domain update`);
 					}
-					injectedTabs.delete(tab.id);
-					console.log(`WebTeX: Disabled on ${url.hostname} after domain update`);
+				} catch (error) {
+					console.error("WebTeX: Error updating tab after domain change:", error);
 				}
-			} catch (error) {
-				console.error("WebTeX: Error updating tab after domain change:", error);
-			}
-		}
+			}),
+		);
 	}
 });

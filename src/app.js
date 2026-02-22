@@ -195,11 +195,12 @@ function removeCSS() {
 
 /* -------------------------------------------------- */
 // Reusable entity decoder for performance
+const _decoderDiv = document.createElement("div");
+
 function decodeHTMLEntities(text) {
 	// Decode using safe div.textContent
-	const div = document.createElement("div");
-	div.innerHTML = text;
-	return div.textContent;
+	_decoderDiv.innerHTML = text;
+	return _decoderDiv.textContent;
 }
 /* -------------------------------------------------- */
 // Logging system for debugging and error tracking
@@ -466,6 +467,11 @@ function fixIncompleteCommands(str) {
 	// \int_{<sub>}^<token>   (token not wrapped in braces)
 	str = str.replace(/\\int_\{([^}]+)\}\^(?!\s*\{)/g, "\\int_{$1}^{}");
 
+	// Also handle variants without braces around subscript, e.g. \int_0^
+	// Pattern allows either a LaTeX command (e.g., \\alpha) or bare token
+	const SUBSCRIPT_TOKEN = "(?:\\\\[a-zA-Z]+|[^_\\\\s{}]+)";
+	const reSubNoBraceEnd = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^\\s*$`, "g");
+	const reSubNoBraceToken = new RegExp(`\\\\int_${SUBSCRIPT_TOKEN}\\^(?!\\s*\\{)`, "g");
 	str = str.replace(reSubNoBraceEnd, (_m) =>
 		_m.replace(/\\int_/, "\\int_{").replace(/\^/, "}^{\\,}"),
 	);
@@ -498,6 +504,20 @@ function fixIncompleteCommands(str) {
 	return str;
 }
 // --------------------------------------------------
+
+// Fix nested \text commands in nuclear notation like: \text{^{A}\text{N}} -> {}^{A}\text{N}
+// This handles malformed input where superscript A and element N are both wrapped in \text{}
+// Multi-line, commented regex for maintainability
+const MALFORMED_NESTED_TEXT_PATTERN = new RegExp(
+	[
+		// Match \text{^{A}\text{N}}
+		String.raw`\\text\{`, // Match literal \text{
+		String.raw`\\\^\{([^}]+)\}`, // Match ^{A} (superscript), capture A
+		String.raw`\\text\{([^}]*)\}`, // Match \text{N}, capture N
+		String.raw`\}`, // Match closing }
+	].join(""),
+	"g",
+);
 
 class CustomLatexParser {
 	constructor() {
@@ -916,19 +936,6 @@ class CustomLatexParser {
 		// Pattern: \text{^{A}N} -> {}^{A}\text{N}
 		str = str.replace(/\\text\{\^\{([^}]+)\}([^}]*)\}/g, "{}^{$1}\\text{$2}");
 
-		// Fix nested \text commands in nuclear notation like: \text{^{A}\text{N}} -> {}^{A}\text{N}
-		// This handles malformed input where superscript A and element N are both wrapped in \text{}
-		// Multi-line, commented regex for maintainability
-		const MALFORMED_NESTED_TEXT_PATTERN = new RegExp(
-			[
-				// Match \text{^{A}\text{N}}
-				String.raw`\\text\{`, // Match literal \text{
-				String.raw`\\\^\{([^}]+)\}`, // Match ^{A} (superscript), capture A
-				String.raw`\\text\{([^}]*)\}`, // Match \text{N}, capture N
-				String.raw`\}`, // Match closing }
-			].join(""),
-			"g",
-		);
 		str = str.replace(MALFORMED_NESTED_TEXT_PATTERN, "{}^{$1}\\text{$2}");
 
 		// Handle nested form without escaped caret: \text{^{A}\text{N}} -> {}^{A}\text{N}
@@ -1232,6 +1239,30 @@ async function renderMathExpression(tex, displayMode = false, element = null) {
 
 /* -------------------------------------------------- */
 // Enhanced math detection and processing
+
+// Enhanced regex patterns for math detection
+const patterns = [
+	// Display math: $$...$$ and \[...\]
+	{ pattern: /\$\$([\s\S]*?)\$\$/g, display: true },
+	{ pattern: /\\\[([\s\S]*?)\\\]/g, display: true },
+	// Inline math: $...$ and \(...\)
+	// The following regex matches inline math expressions delimited by single dollar signs ($...$),
+	// while allowing for escaped dollar signs (\$) inside the math. It captures the content between
+	// the dollar signs, ensuring that a single $ does not match across multiple math expressions.
+	// Breakdown:
+	//   \$           - Match a literal dollar sign (start delimiter)
+	//   (            - Start capturing group for the math content
+	//     (?:        - Non-capturing group for content inside math
+	//       [^\$]    - Any character except a dollar sign
+	//       |        - OR
+	//       \\$     - An escaped dollar sign (i.e., \$)
+	//     )+?        - Repeat one or more times, non-greedy
+	//   )            - End capturing group
+	//   \$           - Match a literal dollar sign (end delimiter)
+	{ pattern: /\$((?:[^$]|\\\$)+?)\$/g, display: false },
+	{ pattern: /\\\(([\s\S]*?)\\\)/g, display: false },
+];
+
 function findMathExpressions(root) {
 	const mathExpressions = [];
 	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -1279,30 +1310,8 @@ function findMathExpressions(root) {
 	while ((node = walker.nextNode())) {
 		const text = node.textContent;
 
-		// Enhanced regex patterns for math detection
-		const patterns = [
-			// Display math: $$...$$ and \[...\]
-			{ pattern: /\$\$([\s\S]*?)\$\$/g, display: true },
-			{ pattern: /\\\[([\s\S]*?)\\\]/g, display: true },
-			// Inline math: $...$ and \(...\)
-			// The following regex matches inline math expressions delimited by single dollar signs ($...$),
-			// while allowing for escaped dollar signs (\$) inside the math. It captures the content between
-			// the dollar signs, ensuring that a single $ does not match across multiple math expressions.
-			// Breakdown:
-			//   \$           - Match a literal dollar sign (start delimiter)
-			//   (            - Start capturing group for the math content
-			//     (?:        - Non-capturing group for content inside math
-			//       [^\$]    - Any character except a dollar sign
-			//       |        - OR
-			//       \\$     - An escaped dollar sign (i.e., \$)
-			//     )+?        - Repeat one or more times, non-greedy
-			//   )            - End capturing group
-			//   \$           - Match a literal dollar sign (end delimiter)
-			{ pattern: /\$((?:[^$]|\\\$)+?)\$/g, display: false },
-			{ pattern: /\\\(([\s\S]*?)\\\)/g, display: false },
-		];
-
 		patterns.forEach(({ pattern, display }) => {
+			pattern.lastIndex = 0;
 			let match = pattern.exec(text);
 			while (match !== null) {
 				const tex = decodeHTMLEntities(match[1].trim());
@@ -1385,6 +1394,9 @@ async function processMathExpressions(expressions) {
 /* -------------------------------------------------- */
 // Enhanced preprocessing with Unicode handling
 function preprocessMathText(node) {
+	// Skip processing if the node itself is an editable element
+	if (node.nodeType === 1 && nodeIsEditable(node)) return;
+
 	if (!node || !node.childNodes) return;
 
 	node.childNodes.forEach((child) => {
@@ -1405,7 +1417,9 @@ function preprocessMathText(node) {
 				},
 			);
 
-			child.textContent = text;
+			if (child.textContent !== text) {
+				child.textContent = text;
+			}
 		} else if (
 			child.nodeType === 1 &&
 			![
@@ -1418,136 +1432,133 @@ function preprocessMathText(node) {
 				"INPUT",
 				"SELECT",
 				"BUTTON",
-			].includes(child.tagName)
+			].includes(child.tagName) &&
+			!nodeIsEditable(child)
 		) {
 			preprocessMathText(child);
 		}
 	});
 }
 
+// Common Unicode fractions
+const unicodeFractions = {
+	"½": "\\frac{1}{2}",
+	"⅓": "\\frac{1}{3}",
+	"⅔": "\\frac{2}{3}",
+	"¼": "\\frac{1}{4}",
+	"¾": "\\frac{3}{4}",
+	"⅕": "\\frac{1}{5}",
+	"⅖": "\\frac{2}{5}",
+	"⅗": "\\frac{3}{5}",
+	"⅘": "\\frac{4}{5}",
+	"⅙": "\\frac{1}{6}",
+	"⅚": "\\frac{5}{6}",
+	"⅐": "\\frac{1}{7}",
+	"⅛": "\\frac{1}{8}",
+	"⅜": "\\frac{3}{8}",
+	"⅝": "\\frac{5}{8}",
+	"⅞": "\\frac{7}{8}",
+	"⅑": "\\frac{1}{9}",
+	"⅒": "\\frac{1}{10}",
+};
+
+// Common Unicode symbols and their LaTeX equivalents
+const unicodeSymbols = {
+	"→": "\\rightarrow",
+	"←": "\\leftarrow",
+	"↔": "\\leftrightarrow",
+	"⇒": "\\Rightarrow",
+	"⇐": "\\Leftarrow",
+	"⇔": "\\Leftrightarrow",
+	"∈": "\\in",
+	"∉": "\\notin",
+	"⊆": "\\subseteq",
+	"⊂": "\\subset",
+	"⊇": "\\supseteq",
+	"⊃": "\\supset",
+	"∩": "\\cap",
+	"∪": "\\cup",
+	"∅": "\\emptyset",
+	"∞": "\\infty",
+	"±": "\\pm",
+	"∓": "\\mp",
+	"×": "\\times",
+	"÷": "\\div",
+	"≤": "\\leq",
+	"≥": "\\geq",
+	"≠": "\\neq",
+	"≈": "\\approx",
+	"≡": "\\equiv",
+	"≅": "\\cong",
+	"∝": "\\propto",
+	"∑": "\\sum",
+	"∏": "\\prod",
+	"∫": "\\int",
+	"∬": "\\iint",
+	"∭": "\\iiint",
+	"∮": "\\oint",
+	"∇": "\\nabla",
+	"∂": "\\partial",
+	"√": "\\sqrt",
+	"∛": "\\sqrt[3]",
+	"∜": "\\sqrt[4]",
+	α: "\\alpha",
+	β: "\\beta",
+	γ: "\\gamma",
+	δ: "\\delta",
+	ε: "\\epsilon",
+	ζ: "\\zeta",
+	η: "\\eta",
+	θ: "\\theta",
+	ι: "\\iota",
+	κ: "\\kappa",
+	λ: "\\lambda",
+	μ: "\\mu",
+	ν: "\\nu",
+	ξ: "\\xi",
+	π: "\\pi",
+	ρ: "\\rho",
+	σ: "\\sigma",
+	τ: "\\tau",
+	υ: "\\upsilon",
+	φ: "\\phi",
+	χ: "\\chi",
+	ψ: "\\psi",
+	ω: "\\omega",
+	Α: "\\Alpha",
+	Β: "\\Beta",
+	Γ: "\\Gamma",
+	Δ: "\\Delta",
+	Ε: "\\Epsilon",
+	Ζ: "\\Zeta",
+	Η: "\\Eta",
+	Θ: "\\Theta",
+	Ι: "\\Iota",
+	Κ: "\\Kappa",
+	Λ: "\\Lambda",
+	Μ: "\\Mu",
+	Ν: "\\Nu",
+	Ξ: "\\Xi",
+	Π: "\\Pi",
+	Ρ: "\\Rho",
+	Σ: "\\Sigma",
+	Τ: "\\Tau",
+	Υ: "\\Upsilon",
+	Φ: "\\Phi",
+	Χ: "\\Chi",
+	Ψ: "\\Psi",
+	Ω: "\\Omega",
+};
+
+const unicodeReplacements = { ...unicodeFractions, ...unicodeSymbols };
+const unicodeReplacementPattern = new RegExp(Object.keys(unicodeReplacements).join("|"), "g");
+
 // Function to handle Unicode characters in math expressions
 function handleUnicodeInMath(tex) {
-	// Common Unicode fractions
-	const unicodeFractions = {
-		"½": "\\frac{1}{2}",
-		"⅓": "\\frac{1}{3}",
-		"⅔": "\\frac{2}{3}",
-		"¼": "\\frac{1}{4}",
-		"¾": "\\frac{3}{4}",
-		"⅕": "\\frac{1}{5}",
-		"⅖": "\\frac{2}{5}",
-		"⅗": "\\frac{3}{5}",
-		"⅘": "\\frac{4}{5}",
-		"⅙": "\\frac{1}{6}",
-		"⅚": "\\frac{5}{6}",
-		"⅐": "\\frac{1}{7}",
-		"⅛": "\\frac{1}{8}",
-		"⅜": "\\frac{3}{8}",
-		"⅝": "\\frac{5}{8}",
-		"⅞": "\\frac{7}{8}",
-		"⅑": "\\frac{1}{9}",
-		"⅒": "\\frac{1}{10}",
-	};
-
-	// Common Unicode symbols and their LaTeX equivalents
-	const unicodeSymbols = {
-		"→": "\\rightarrow",
-		"←": "\\leftarrow",
-		"↔": "\\leftrightarrow",
-		"⇒": "\\Rightarrow",
-		"⇐": "\\Leftarrow",
-		"⇔": "\\Leftrightarrow",
-		"∈": "\\in",
-		"∉": "\\notin",
-		"⊆": "\\subseteq",
-		"⊂": "\\subset",
-		"⊇": "\\supseteq",
-		"⊃": "\\supset",
-		"∩": "\\cap",
-		"∪": "\\cup",
-		"∅": "\\emptyset",
-		"∞": "\\infty",
-		"±": "\\pm",
-		"∓": "\\mp",
-		"×": "\\times",
-		"÷": "\\div",
-		"≤": "\\leq",
-		"≥": "\\geq",
-		"≠": "\\neq",
-		"≈": "\\approx",
-		"≡": "\\equiv",
-		"≅": "\\cong",
-		"∝": "\\propto",
-		"∑": "\\sum",
-		"∏": "\\prod",
-		"∫": "\\int",
-		"∬": "\\iint",
-		"∭": "\\iiint",
-		"∮": "\\oint",
-		"∇": "\\nabla",
-		"∂": "\\partial",
-		"√": "\\sqrt",
-		"∛": "\\sqrt[3]",
-		"∜": "\\sqrt[4]",
-		α: "\\alpha",
-		β: "\\beta",
-		γ: "\\gamma",
-		δ: "\\delta",
-		ε: "\\epsilon",
-		ζ: "\\zeta",
-		η: "\\eta",
-		θ: "\\theta",
-		ι: "\\iota",
-		κ: "\\kappa",
-		λ: "\\lambda",
-		μ: "\\mu",
-		ν: "\\nu",
-		ξ: "\\xi",
-		π: "\\pi",
-		ρ: "\\rho",
-		σ: "\\sigma",
-		τ: "\\tau",
-		υ: "\\upsilon",
-		φ: "\\phi",
-		χ: "\\chi",
-		ψ: "\\psi",
-		ω: "\\omega",
-		Α: "\\Alpha",
-		Β: "\\Beta",
-		Γ: "\\Gamma",
-		Δ: "\\Delta",
-		Ε: "\\Epsilon",
-		Ζ: "\\Zeta",
-		Η: "\\Eta",
-		Θ: "\\Theta",
-		Ι: "\\Iota",
-		Κ: "\\Kappa",
-		Λ: "\\Lambda",
-		Μ: "\\Mu",
-		Ν: "\\Nu",
-		Ξ: "\\Xi",
-		Π: "\\Pi",
-		Ρ: "\\Rho",
-		Σ: "\\Sigma",
-		Τ: "\\Tau",
-		Υ: "\\Upsilon",
-		Φ: "\\Phi",
-		Χ: "\\Chi",
-		Ψ: "\\Psi",
-		Ω: "\\Omega",
-	};
-
 	let processed = tex;
 
-	// Replace Unicode fractions with LaTeX fractions
-	Object.entries(unicodeFractions).forEach(([unicode, latex]) => {
-		processed = processed.replace(new RegExp(unicode, "g"), latex);
-	});
-
-	// Replace Unicode symbols with LaTeX equivalents
-	Object.entries(unicodeSymbols).forEach(([unicode, latex]) => {
-		processed = processed.replace(new RegExp(unicode, "g"), latex);
-	});
+	// Replace Unicode fractions and symbols with LaTeX equivalents using a single pass
+	processed = processed.replace(unicodeReplacementPattern, (match) => unicodeReplacements[match]);
 
 	// Handle other Unicode characters by wrapping them in \text{}
 	// This regex matches Unicode characters that are not already in \text{} or other commands

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebTeX – LaTeX Rendering Test Page</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-hover: #22263a;
+      --border: #2e3347;
+      --text: #e4e6f0;
+      --text-dim: #8b8fa8;
+      --accent: #7c6aef;
+      --accent-glow: rgba(124, 106, 239, 0.15);
+      --green: #34d399;
+      --amber: #fbbf24;
+      --pink: #f472b6;
+      --cyan: #22d3ee;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 3rem;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 2.5rem;
+      font-size: 0.88rem;
+      color: var(--accent);
+    }
+
+    .status-banner::before {
+      content: '💡';
+      font-size: 1.1rem;
+    }
+
+    section {
+      margin-bottom: 2.5rem;
+    }
+
+    section h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      vertical-align: middle;
+    }
+    .tag-inline { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+    .tag-display { background: rgba(251, 191, 36, 0.15); color: var(--amber); }
+    .tag-mixed { background: rgba(244, 114, 182, 0.15); color: var(--pink); }
+
+    .test-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .test-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .test-card h3 {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .test-card .latex-content {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      padding: 0.5rem 0;
+    }
+
+    .test-card .raw-source {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--border);
+    }
+
+    .test-card .raw-source summary {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .test-card .raw-source pre {
+      margin-top: 0.4rem;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--cyan);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>WebTeX Test Page</h1>
+      <p>Enable WebTeX on this page (or localhost) to see all LaTeX expressions rendered. Each card contains raw LaTeX that the extension should pick up.</p>
+    </header>
+
+    <div class="status-banner">
+      Make sure the WebTeX extension is enabled for this domain. The raw $\LaTeX$ below should render automatically.
+    </div>
+
+    <!-- ═══════════════ INLINE MATH ═══════════════ -->
+    <section>
+      <h2><span class="tag tag-inline">Inline</span> Basic Inline Math</h2>
+
+      <div class="test-card">
+        <h3>Simple Expressions</h3>
+        <div class="latex-content">
+          Einstein's famous equation: $E = mc^2$. The area of a circle is $A = \pi r^2$.
+          The quadratic formula gives us $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$E = mc^2$
+$A = \pi r^2$
+$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Greek Letters</h3>
+        <div class="latex-content">
+          Lowercase: $\alpha, \beta, \gamma, \delta, \epsilon, \zeta, \eta, \theta, \lambda, \mu, \pi, \sigma, \phi, \omega$.
+          Uppercase: $\Gamma, \Delta, \Theta, \Lambda, \Pi, \Sigma, \Phi, \Omega$.
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$\alpha, \beta, \gamma, \delta, \epsilon, \zeta, \eta, \theta, \lambda, \mu, \pi, \sigma, \phi, \omega$
+$\Gamma, \Delta, \Theta, \Lambda, \Pi, \Sigma, \Phi, \Omega$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Subscripts &amp; Superscripts</h3>
+        <div class="latex-content">
+          Simple: $x^2$, $y_i$, $a_{n+1}$.
+          Combined: $x_i^2$, $a_{i,j}^{n+1}$.
+          Nested: $e^{e^{e^x}}$, $x_{y_{z}}$.
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$x^2$, $y_i$, $a_{n+1}$
+$x_i^2$, $a_{i,j}^{n+1}$
+$e^{e^{e^x}}$, $x_{y_{z}}$</pre>
+        </details>
+      </div>
+    </section>
+
+    <!-- ═══════════════ DISPLAY MATH ═══════════════ -->
+    <section>
+      <h2><span class="tag tag-display">Display</span> Display Math Blocks</h2>
+
+      <div class="test-card">
+        <h3>Summations &amp; Products</h3>
+        <div class="latex-content">
+          $$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$
+          $$\prod_{i=1}^{n} i = n!$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$
+$$\prod_{i=1}^{n} i = n!$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Integrals</h3>
+        <div class="latex-content">
+          $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+          $$\oint_C \mathbf{F} \cdot d\mathbf{r} = \iint_S (\nabla \times \mathbf{F}) \cdot d\mathbf{S}$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+$$\oint_C \mathbf{F} \cdot d\mathbf{r} = \iint_S (\nabla \times \mathbf{F}) \cdot d\mathbf{S}$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Fractions &amp; Binomials</h3>
+        <div class="latex-content">
+          $$\frac{\partial f}{\partial x} = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
+          $$\binom{n}{k} = \frac{n!}{k!(n-k)!}$$
+          $$\cfrac{1}{1 + \cfrac{1}{1 + \cfrac{1}{1 + x}}}$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\frac{\partial f}{\partial x} = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$$
+$$\binom{n}{k} = \frac{n!}{k!(n-k)!}$$
+$$\cfrac{1}{1 + \cfrac{1}{1 + \cfrac{1}{1 + x}}}$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Matrices</h3>
+        <div class="latex-content">
+          $$\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax + by \\ cx + dy \end{pmatrix}$$
+          $$\det(A) = \begin{vmatrix} a & b \\ c & d \end{vmatrix} = ad - bc$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax + by \\ cx + dy \end{pmatrix}$$
+$$\det(A) = \begin{vmatrix} a & b \\ c & d \end{vmatrix} = ad - bc$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Aligned Equations</h3>
+        <div class="latex-content">
+          $$\begin{aligned} (x + y)^2 &= x^2 + 2xy + y^2 \\ (x - y)^2 &= x^2 - 2xy + y^2 \\ (x+y)(x-y) &= x^2 - y^2 \end{aligned}$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\begin{aligned}
+  (x + y)^2 &= x^2 + 2xy + y^2 \\
+  (x - y)^2 &= x^2 - 2xy + y^2 \\
+  (x+y)(x-y) &= x^2 - y^2
+\end{aligned}$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Cases (Piecewise Functions)</h3>
+        <div class="latex-content">
+          $$f(x) = \begin{cases} x^2 & \text{if } x \geq 0 \\ -x^2 & \text{if } x < 0 \end{cases}$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$f(x) = \begin{cases}
+  x^2 & \text{if } x \geq 0 \\
+  -x^2 & \text{if } x < 0
+\end{cases}$$</pre>
+        </details>
+      </div>
+    </section>
+
+    <!-- ═══════════════ ADVANCED ═══════════════ -->
+    <section>
+      <h2><span class="tag tag-mixed">Advanced</span> Complex Expressions</h2>
+
+      <div class="test-card">
+        <h3>Limits &amp; Series</h3>
+        <div class="latex-content">
+          $$\lim_{n \to \infty} \left(1 + \frac{1}{n}\right)^n = e$$
+          $$e^x = \sum_{n=0}^{\infty} \frac{x^n}{n!} = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \cdots$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\lim_{n \to \infty} \left(1 + \frac{1}{n}\right)^n = e$$
+$$e^x = \sum_{n=0}^{\infty} \frac{x^n}{n!} = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \cdots$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Set Theory &amp; Logic</h3>
+        <div class="latex-content">
+          $$\forall \epsilon > 0, \exists \delta > 0 : |x - a| < \delta \Rightarrow |f(x) - L| < \epsilon$$
+          $$A \cup B = \{x : x \in A \text{ or } x \in B\}$$
+          $$A \cap B \subseteq A \cup B$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\forall \epsilon > 0, \exists \delta > 0 : |x - a| < \delta \Rightarrow |f(x) - L| < \epsilon$$
+$$A \cup B = \{x : x \in A \text{ or } x \in B\}$$
+$$A \cap B \subseteq A \cup B$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Arrows &amp; Relations</h3>
+        <div class="latex-content">
+          $f: X \rightarrow Y$, $x \mapsto f(x)$, $A \hookrightarrow B$, $A \Leftrightarrow B$.
+          $$a \leq b \leq c \quad a \neq b \quad x \approx y \quad p \equiv q \pmod{n}$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$f: X \rightarrow Y$, $x \mapsto f(x)$, $A \hookrightarrow B$
+$$a \leq b \leq c \quad a \neq b \quad x \approx y \quad p \equiv q \pmod{n}$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Delimiters &amp; Sizing</h3>
+        <div class="latex-content">
+          $$\left( \frac{a}{b} \right) \quad \left[ \frac{c}{d} \right] \quad \left\{ \frac{e}{f} \right\} \quad \left| \frac{g}{h} \right|$$
+          $$\left\langle \psi \middle| \phi \right\rangle$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\left( \frac{a}{b} \right) \quad \left[ \frac{c}{d} \right] \quad \left\{ \frac{e}{f} \right\} \quad \left| \frac{g}{h} \right|$$
+$$\left\langle \psi \middle| \phi \right\rangle$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Calculus &amp; Differential Equations</h3>
+        <div class="latex-content">
+          $$\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}$$
+          $$\nabla \times \mathbf{B} = \mu_0 \mathbf{J} + \mu_0 \epsilon_0 \frac{\partial \mathbf{E}}{\partial t}$$
+          $$\frac{d^2y}{dx^2} + \omega^2 y = 0$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}$$
+$$\nabla \times \mathbf{B} = \mu_0 \mathbf{J} + \mu_0 \epsilon_0 \frac{\partial \mathbf{E}}{\partial t}$$
+$$\frac{d^2y}{dx^2} + \omega^2 y = 0$$</pre>
+        </details>
+      </div>
+
+      <div class="test-card">
+        <h3>Decorated Symbols</h3>
+        <div class="latex-content">
+          $$\hat{x}, \bar{y}, \vec{v}, \dot{a}, \ddot{b}, \tilde{n}, \overline{AB}, \underline{CD}, \overbrace{1+2+\cdots+n}^{n \text{ terms}}$$
+        </div>
+        <details class="raw-source"><summary>View source</summary>
+          <pre>$$\hat{x}, \bar{y}, \vec{v}, \dot{a}, \ddot{b}, \tilde{n}, \overline{AB}, \underline{CD}, \overbrace{1+2+\cdots+n}^{n \text{ terms}}$$</pre>
+        </details>
+      </div>
+    </section>
+
+    <!-- ═══════════════ MIXED CONTEXT ═══════════════ -->
+    <section>
+      <h2><span class="tag tag-mixed">Mixed</span> Inline Math in Paragraphs</h2>
+
+      <div class="test-card">
+        <h3>Physics Paragraph</h3>
+        <div class="latex-content">
+          <p>The Schrödinger equation $i\hbar\frac{\partial}{\partial t}\Psi = \hat{H}\Psi$ describes how the quantum state of a system evolves over time. For a free particle with mass $m$, the Hamiltonian is $\hat{H} = -\frac{\hbar^2}{2m}\nabla^2$, giving us the time-independent form:</p>
+          $$-\frac{\hbar^2}{2m}\nabla^2 \psi + V\psi = E\psi$$
+          <p>where $V$ is the potential energy and $E$ is the total energy.</p>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <h3>Probability &amp; Statistics</h3>
+        <div class="latex-content">
+          <p>The normal distribution with mean $\mu$ and standard deviation $\sigma$ has the probability density function:</p>
+          $$f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}$$
+          <p>Bayes' theorem states $P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$, which is fundamental to statistical inference.</p>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <h3>Linear Algebra</h3>
+        <div class="latex-content">
+          <p>The eigenvalue equation $A\mathbf{v} = \lambda\mathbf{v}$ has non-trivial solutions when $\det(A - \lambda I) = 0$. For a $2 \times 2$ matrix:</p>
+          $$\det \begin{pmatrix} a - \lambda & b \\ c & d - \lambda \end{pmatrix} = (a-\lambda)(d-\lambda) - bc = 0$$
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ EDGE CASES ═══════════════ -->
+    <section>
+      <h2><span class="tag tag-pink" style="background:rgba(34,211,238,0.15);color:var(--cyan)">Edge</span> Edge Cases &amp; Stress Tests</h2>
+
+      <div class="test-card">
+        <h3>Dollar Signs That Should NOT Render</h3>
+        <div class="latex-content">
+          <p>This costs $5 and that costs $10. The price range is $5–$10. Revenue was $1.2M.</p>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <h3>Deeply Nested Expressions</h3>
+        <div class="latex-content">
+          $$\sqrt{\sqrt{\sqrt{\sqrt{x}}}}$$
+          $$\frac{\frac{\frac{a}{b}}{\frac{c}{d}}}{\frac{\frac{e}{f}}{\frac{g}{h}}}$$
+        </div>
+      </div>
+
+      <div class="test-card">
+        <h3>Long Expression</h3>
+        <div class="latex-content">
+          $$\int_0^1 \int_0^1 \int_0^1 f(x,y,z) \, dx \, dy \, dz = \sum_{i=1}^{N} \sum_{j=1}^{M} \sum_{k=1}^{P} w_i w_j w_k f(x_i, y_j, z_k)$$
+        </div>
+      </div>
+
+      <div class="test-card">
+        <h3>Nuclear Notation (Custom Parser)</h3>
+        <div class="latex-content">
+          <p>Uranium-235: ${}^{235}_{92}\text{U}$. Carbon-14: ${}^{14}_{6}\text{C}$. Alpha decay: ${}^{238}_{92}\text{U} \rightarrow {}^{234}_{90}\text{Th} + {}^{4}_{2}\text{He}$.</p>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <h3>Text Inside Math</h3>
+        <div class="latex-content">
+          $$x = \begin{cases} 1 & \text{if } n \text{ is odd} \\ 0 & \text{if } n \text{ is even} \end{cases}$$
+          $$\underbrace{a + b + \cdots + z}_{26 \text{ letters}}$$
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      WebTeX v2.1.0 – Test Page &middot; Open this file locally or serve it, then enable WebTeX on the domain.
+    </footer>
+  </div>
+</body>
+</html>
