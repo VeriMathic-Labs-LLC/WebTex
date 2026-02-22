@@ -1,7 +1,7 @@
 // Domain utility functions for WebTeX
 
 // Common subdomains to strip when normalizing domains
-const COMMON_SUBDOMAINS = [
+const COMMON_SUBDOMAINS = new Set([
 	"www",
 	"m",
 	"mobile",
@@ -26,7 +26,55 @@ const COMMON_SUBDOMAINS = [
 	"test",
 	"beta",
 	"alpha",
-];
+]);
+
+// Common country-specific TLDs that should keep the second-to-last part
+const COUNTRY_TLDS = new Set([
+	"uk",
+	"au",
+	"nz",
+	"za",
+	"br",
+	"in",
+	"jp",
+	"kr",
+	"cn",
+	"ru",
+	"de",
+	"fr",
+	"it",
+	"es",
+	"nl",
+	"se",
+	"no",
+	"dk",
+	"fi",
+	"pl",
+	"cz",
+	"hu",
+	"ro",
+	"bg",
+	"hr",
+	"si",
+	"sk",
+	"ee",
+	"lv",
+	"lt",
+	"mt",
+	"cy",
+	"gr",
+	"pt",
+	"ie",
+	"be",
+	"at",
+	"ch",
+	"lu",
+	"li",
+	"mc",
+	"ad",
+	"sm",
+	"va",
+]);
 
 // Common country-specific TLDs that should keep the second-to-last part
 const COUNTRY_TLDS = new Set([
@@ -107,7 +155,7 @@ export function normalizeDomain(hostname) {
 
 	// Check if the first part is a common subdomain
 	const firstPart = parts[0].toLowerCase();
-	if (COMMON_SUBDOMAINS.includes(firstPart)) {
+	if (COMMON_SUBDOMAINS.has(firstPart)) {
 		// Remove the common subdomain
 		return parts.slice(1).join(".");
 	}
