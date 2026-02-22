@@ -1384,6 +1384,9 @@ async function processMathExpressions(expressions) {
 /* -------------------------------------------------- */
 // Enhanced preprocessing with Unicode handling
 function preprocessMathText(node) {
+	// Skip processing if the node itself is an editable element
+	if (node.nodeType === 1 && nodeIsEditable(node)) return;
+
 	if (!node || !node.childNodes) return;
 
 	node.childNodes.forEach((child) => {
@@ -1404,7 +1407,9 @@ function preprocessMathText(node) {
 				},
 			);
 
-			child.textContent = text;
+			if (child.textContent !== text) {
+				child.textContent = text;
+			}
 		} else if (
 			child.nodeType === 1 &&
 			![
@@ -1417,7 +1422,8 @@ function preprocessMathText(node) {
 				"INPUT",
 				"SELECT",
 				"BUTTON",
-			].includes(child.tagName)
+			].includes(child.tagName) &&
+			!nodeIsEditable(child)
 		) {
 			preprocessMathText(child);
 		}
